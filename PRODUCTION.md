@@ -12,6 +12,8 @@ Copy `.env.example` and set at minimum:
 | `SEED_DEMO_DATA=false` | Skip demo accounts, chat messages, submissions, events, posts, groups, profiles and livestreams on first boot. Empty starter chat channels are still created. |
 | `FRAME_ANCESTORS` *(optional)* | Who may embed the site in an iframe. Defaults to `'self'`; only add trusted origins if embedding is required. |
 | `OPENAI_API_KEY` *(optional)* | Upgrades the AI tutors from the built-in engine to an LLM |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` *(optional)* | Enables Google sign-in. |
+| `GOOGLE_LEADER_EMAILS` / `GOOGLE_TEACHER_EMAILS` *(optional)* | Comma-separated trusted Google emails for elevated roles. Everyone else is a member. |
 
 ## 2. Database
 ```bash
@@ -34,6 +36,8 @@ Health check: `GET /api/health` → `200 {"ok":true,...}` or `503` when the DB i
 3. Add `ADMIN_PASSWORD`, `SITE_URL`, `SEED_DEMO_DATA=false`, `FRAME_ANCESTORS='self'` and `DB_POOL_MAX=1` in Vercel Project Settings → Environment Variables. Add `OPENAI_API_KEY` only if you want the external AI service. Set database variables for every environment you build (Production and Preview); use a separate database for Preview.
 4. Apply the schema once before the first production deployment, and again when the schema changes. Link the project with the Vercel CLI, pull Production variables into the ignored local `.env`, then run `npx drizzle-kit push`. The Drizzle config prefers `DATABASE_URL_UNPOOLED` for this step. Never commit `.env`.
 5. Deploy. Set `SITE_URL` to the final HTTPS domain assigned by Vercel (or your custom domain), then redeploy so sitemap and social metadata use the canonical URL.
+
+For Google sign-in, create a Google OAuth Web application client. Add `https://YOUR-DOMAIN/api/auth/google/callback` as an authorised redirect URI, then set the client ID and secret in Vercel. Put trusted leader and teacher email addresses in the corresponding allowlist variables. Never allow users to choose these roles during sign-up.
 
 Vercel functions are serverless and may run in separate instances. This app currently keeps rate-limit counters, chat presence and live-room presence in process memory; these features are not shared reliably between instances. Move them to shared storage such as Redis before relying on global rate limits or consistent presence/live-room state.
 

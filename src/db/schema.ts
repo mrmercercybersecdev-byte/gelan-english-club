@@ -75,6 +75,8 @@ export const messages = pgTable("messages", {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 32 }).notNull().unique(),
+  email: varchar("email", { length: 320 }).unique(),
+  googleId: varchar("google_id", { length: 255 }).unique(),
   displayName: varchar("display_name", { length: 60 }).notNull(),
   passwordHash: text("password_hash").notNull(),
   avatarColor: varchar("avatar_color", { length: 20 }).notNull().default("#b8322a"),

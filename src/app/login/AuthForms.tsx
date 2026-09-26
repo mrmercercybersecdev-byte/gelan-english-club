@@ -8,13 +8,19 @@ import { LEVELS } from "@/lib/format";
 
 type G = { id: number; name: string; emoji: string; joinPolicy: string };
 
-export default function AuthForms({ next, groups = [] }: { next: string; groups?: G[] }) {
+export default function AuthForms({ next, groups = [], error }: { next: string; groups?: G[]; error?: string }) {
   const [tab, setTab] = useState<"login" | "signup">("signup");
   const [loginState, loginAction] = useActionState<FormState, FormData>(loginUserAction, null);
   const [signupState, signup] = useActionState<FormState, FormData>(signupAction, null);
 
   return (
     <div className="rounded-3xl bg-white p-7 shadow-xl ring-1 ring-black/5 md:p-9">
+      {error && <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
+      <a href={`/api/auth/google/start?next=${encodeURIComponent(next)}`} className="flex w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 font-semibold shadow-sm transition hover:bg-paper">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-sm font-bold text-blue-600 ring-1 ring-black/10">G</span>
+        Continue with Google
+      </a>
+      <div className="my-5 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-black/10" />or use a username<span className="h-px flex-1 bg-black/10" /></div>
       <div className="mb-6 grid grid-cols-2 rounded-full bg-paper p-1 text-sm font-semibold">
         {(["signup", "login"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`rounded-full py-2 transition ${tab === t ? "bg-white shadow" : "text-muted"}`}>
