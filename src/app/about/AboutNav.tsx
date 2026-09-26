@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Icon, { type IconName } from "@/components/Icon";
 
 const SECTIONS = [
-  ["story", "📖 Story"],
-  ["history", "📜 History"],
-  ["leaders", "👑 Leaders"],
-  ["facilitators", "🧑‍🏫 Facilitators"],
-  ["champions", "🏆 Champions"],
-  ["live", "🔴 Livestream"],
-  ["faq", "❓ FAQ"],
+  ["story", "Story", "book"],
+  ["history", "History", "clock"],
+  ["leaders", "Leaders", "people"],
+  ["facilitators", "Facilitators", "user"],
+  ["champions", "Champions", "trophy"],
+  ["live", "Livestream", "video"],
+  ["faq", "FAQ", "help"],
 ] as const;
 
 export default function AboutNav({ live }: { live: boolean }) {
@@ -30,15 +31,22 @@ export default function AboutNav({ live }: { live: boolean }) {
 
   return (
     <div className="sticky top-16 z-30 border-b border-black/5 bg-cream/85 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-5 py-2 [scrollbar-width:none]">
-        {SECTIONS.map(([id, label]) => (
+      <nav aria-label="About page sections" className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-5 py-2 [scrollbar-width:none]">
+        {SECTIONS.map(([id, label, icon]) => (
           <a
             key={id}
             href={`#${id}`}
-            className={`relative shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition ${active === id ? "bg-ink text-white shadow" : "text-ink/70 hover:bg-black/5"}`}
+            aria-current={active === id ? "location" : undefined}
+            className={`relative inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transition-none sm:px-4 ${active === id ? "bg-ink text-white shadow" : "text-ink/70 hover:bg-black/5"}`}
           >
+            <Icon name={icon as IconName} size={16} />
             {label}
-            {id === "live" && live && <span className="live-glow absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500" />}
+            {id === "live" && live && (
+              <>
+                <span aria-hidden="true" className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 motion-safe:live-glow" />
+                <span className="sr-only">Live now</span>
+              </>
+            )}
           </a>
         ))}
       </nav>

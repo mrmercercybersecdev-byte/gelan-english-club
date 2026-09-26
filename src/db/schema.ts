@@ -103,6 +103,21 @@ export const sessions = pgTable(
   (t) => [index("sessions_user_idx").on(t.userId), index("sessions_exp_idx").on(t.expiresAt)],
 );
 
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: serial("id").primaryKey(),
+    actorId: integer("actor_id").references(() => users.id, { onDelete: "set null" }),
+    actorRole: varchar("actor_role", { length: 20 }).notNull().default("system"),
+    action: varchar("action", { length: 80 }).notNull(),
+    targetType: varchar("target_type", { length: 40 }),
+    targetId: varchar("target_id", { length: 80 }),
+    metadata: text("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("audit_logs_created_idx").on(t.createdAt), index("audit_logs_actor_idx").on(t.actorId, t.createdAt)],
+);
+
 export const xpLog = pgTable(
   "xp_log",
   {
@@ -399,6 +414,7 @@ export type Champion = typeof champions.$inferSelect;
 export type Milestone = typeof milestones.$inferSelect;
 export type Livestream = typeof livestreams.$inferSelect;
 export type User = typeof users.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
 export type Channel = typeof channels.$inferSelect;
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type Event = typeof events.$inferSelect;

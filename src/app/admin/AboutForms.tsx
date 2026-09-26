@@ -14,21 +14,34 @@ const PRESETS = ["/images/team/emma.jpg", "/images/team/daniel.jpg", "/images/te
 function PhotoField({ initial, label = "Photo" }: { initial?: string | null; label?: string }) {
   const [val, setVal] = useState(initial ?? "");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   async function onFile(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+      setError("Choose a JPEG, PNG or WebP image smaller than 8 MB.");
+      return;
+    }
+
     setBusy(true);
+    setError("");
+    const objectUrl = URL.createObjectURL(file);
     try {
       const img = new Image();
-      img.src = URL.createObjectURL(file);
+      img.src = objectUrl;
       await img.decode();
       const max = 480;
       const k = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement("canvas");
       c.width = Math.round(img.width * k);
       c.height = Math.round(img.height * k);
-      c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
+      const context = c.getContext("2d");
+      if (!context) throw new Error("Your browser could not prepare this image.");
+      context.drawImage(img, 0, 0, c.width, c.height);
       setVal(c.toDataURL("image/jpeg", 0.82));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not process this image.");
     } finally {
+      URL.revokeObjectURL(objectUrl);
       setBusy(false);
     }
   }
@@ -52,11 +65,12 @@ function PhotoField({ initial, label = "Photo" }: { initial?: string | null; lab
           <div className="flex gap-2">
             <label className="cursor-pointer rounded-full bg-paper px-3 py-1.5 text-xs font-semibold hover:bg-gold/20">
               {busy ? "Processing…" : "⬆ Upload"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
             </label>
-            <input value={val.startsWith("data:") ? "(uploaded image)" : val} onChange={(e) => setVal(e.target.value)} placeholder="or paste image URL" className="input !py-1.5 text-xs" />
+            <input value={val.startsWith("data:") ? "(uploaded image)" : val} onChange={(e) => setVal(e.target.value)} placeholder="or secure HTTPS URL / /images/ path" className="input !py-1.5 text-xs" />
             {val && <button type="button" onClick={() => setVal("")} className="text-xs text-muted hover:text-rose-700">✕</button>}
           </div>
+          {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
         </div>
       </div>
     </div>

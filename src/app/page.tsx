@@ -6,6 +6,8 @@ import { wordOfTheDay } from "@/lib/words";
 import { db } from "@/db";
 import { announcements, blogPosts, chatMessages, members, rsvps, users } from "@/db/schema";
 import { ANNOUNCE_STYLES } from "@/lib/announce";
+import { ANNOUNCE_ICONS } from "@/lib/announce";
+import Icon from "@/components/Icon";
 import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import DnaHelix from "@/components/fx/DnaHelix";
 import WordGlobe from "@/components/fx/WordGlobe";
@@ -16,22 +18,22 @@ import { levelFromXp, rankTitle } from "@/lib/xp";
 export const dynamic = "force-dynamic";
 
 const FEATURES = [
-  { href: "/meet", icon: "📹", title: "Live Video Rooms", text: "Spin up a peer-to-peer video meeting in one click. Screen share, reactions, in-room chat.", color: "from-emerald-400 to-teal-600" },
-  { href: "/learn", icon: "🧠", title: "AI Learning Lab", text: "IELTS, SAT & TOEFL tutors, instant essay band scores and timed quizzes.", color: "from-rose-400 to-red-600" },
-  { href: "/speak", icon: "🎙️", title: "Speaking Studio", text: "Talk out loud with an AI partner and get your pronunciation scored in real time.", color: "from-violet-400 to-purple-700" },
-  { href: "/chat", icon: "💬", title: "Chat Channels", text: "Grammar help, IELTS prep, book club and more — live community chat rooms.", color: "from-sky-400 to-blue-700" },
-  { href: "/leaderboard", icon: "🏆", title: "XP & Rankings", text: "Earn XP for everything you do. Level up, unlock badges, keep your streak.", color: "from-amber-300 to-orange-600" },
-  { href: "/events", icon: "☕", title: "Real-World Meetups", text: "Conversation circles, debates, book club and movie nights near you.", color: "from-pink-400 to-rose-600" },
-  { href: "/groups", icon: "👥", title: "Study Groups", text: "Tongue twisters, vocabulary, debate, grammar and more — each with a weekly challenge.", color: "from-fuchsia-400 to-violet-700" },
-  { href: "/games", icon: "🧩", title: "Word Games", text: "Crosswords, scrambles, hangman and tongue-twister races with leaderboards.", color: "from-indigo-400 to-violet-600" },
-  { href: "/submit", icon: "✅", title: "Verified Work", text: "Send essays, recordings or certificates for review and get a shareable verification code.", color: "from-teal-400 to-emerald-700" },
+  { href: "/meet", icon: "video", title: "Live Video Rooms", text: "Spin up a peer-to-peer video meeting in one click. Screen share, reactions, in-room chat.", color: "from-emerald-400 to-teal-600" },
+  { href: "/learn", icon: "sparkles", title: "AI Learning Lab", text: "IELTS, SAT & TOEFL tutors, instant essay band scores and timed quizzes.", color: "from-rose-400 to-red-600" },
+  { href: "/speak", icon: "microphone", title: "Speaking Studio", text: "Talk out loud with an AI partner and get your pronunciation scored in real time.", color: "from-violet-400 to-purple-700" },
+  { href: "/chat", icon: "chat", title: "Chat Channels", text: "Grammar help, IELTS prep, book club and more — live community chat rooms.", color: "from-sky-400 to-blue-700" },
+  { href: "/leaderboard", icon: "trophy", title: "XP & Rankings", text: "Earn XP for everything you do. Level up, unlock badges, keep your streak.", color: "from-amber-300 to-orange-600" },
+  { href: "/events", icon: "calendar", title: "Real-World Meetups", text: "Conversation circles, debates, book club and movie nights near you.", color: "from-pink-400 to-rose-600" },
+  { href: "/groups", icon: "people", title: "Study Groups", text: "Tongue twisters, vocabulary, debate, grammar and more — each with a weekly challenge.", color: "from-fuchsia-400 to-violet-700" },
+  { href: "/games", icon: "game", title: "Word Games", text: "Crosswords, scrambles, hangman and tongue-twister races with leaderboards.", color: "from-indigo-400 to-violet-600" },
+  { href: "/submit", icon: "check", title: "Verified Work", text: "Send essays, recordings or certificates for review and get a shareable verification code.", color: "from-teal-400 to-emerald-700" },
 ];
 
 const DNA_STEPS = [
-  { k: "01", title: "Listen", text: "Shadow native audio, join book club readings and let the rhythm of English sink in.", icon: "🎧" },
-  { k: "02", title: "Speak", text: "Voice-chat with Wordy, our AI partner, then test yourself in a live video room with real members.", icon: "🗣️" },
-  { k: "03", title: "Read", text: "Blog articles, SAT passages and monthly novels build vocabulary in context.", icon: "📖" },
-  { k: "04", title: "Write", text: "Get IELTS-style band scores on your essays in seconds, with line-by-line fixes.", icon: "✍️" },
+  { k: "01", title: "Listen", text: "Shadow native audio, join book club readings and let the rhythm of English sink in.", icon: "clock" },
+  { k: "02", title: "Speak", text: "Voice-chat with Wordy, our AI partner, then test yourself in a live video room with real members.", icon: "microphone" },
+  { k: "03", title: "Read", text: "Blog articles, SAT passages and monthly novels build vocabulary in context.", icon: "book" },
+  { k: "04", title: "Write", text: "Get IELTS-style band scores on your essays in seconds, with line-by-line fixes.", icon: "check" },
 ];
 
 const PHRASES = ["Break the ice", "Piece of cake", "Hit the books", "Speak your mind", "On cloud nine", "Once in a blue moon", "The ball is in your court", "Spill the beans", "Under the weather", "Bite the bullet", "Cost an arm and a leg", "Every cloud has a silver lining"];
@@ -92,8 +94,8 @@ export default async function Home() {
             </Reveal>
             <Reveal delay={300}>
               <div className="mt-9 flex flex-wrap gap-3">
-                <Link href="/login" className="btn-primary !px-6 !py-3.5 shadow-lg shadow-brand/40">Start free — earn XP ⚡</Link>
-                <Link href="/meet" className="glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold hover:bg-white/15">📹 Open a video room</Link>
+                <Link href="/login" className="btn-primary !px-6 !py-3.5 shadow-lg shadow-brand/40">Start free — earn XP</Link>
+                <Link href="/meet" className="glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold hover:bg-white/15"><Icon name="video" size={16} /> Open a video room</Link>
               </div>
             </Reveal>
             <Reveal delay={400}>
@@ -140,7 +142,7 @@ export default async function Home() {
               return (
                 <Reveal key={a.id} delay={i * 80}>
                   <Link href={`/announcements#a-${a.id}`} className="group flex h-full items-start gap-3 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-xl">
-                    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${st.bar} text-lg`}>{st.icon}</span>
+                    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${st.bar} text-white`}><Icon name={ANNOUNCE_ICONS[a.category] ?? "announcement"} size={17} /></span>
                     <span className="min-w-0">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted">{a.pinned ? "📌 " : ""}{st.label}</span>
                       <span className="block font-semibold leading-snug group-hover:text-brand">{a.title}</span>
@@ -166,7 +168,9 @@ export default async function Home() {
               <Reveal key={f.href} delay={i * 80}>
                 <TiltCard className="h-full rounded-3xl">
                   <Link href={f.href} className="group block h-full overflow-hidden rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 transition hover:shadow-xl">
-                    <div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${f.color} text-2xl shadow-lg transition group-hover:scale-110 group-hover:rotate-6`}>{f.icon}</div>
+                    <div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${f.color} text-white shadow-lg transition group-hover:scale-110 group-hover:rotate-6`}>
+                      <Icon name={f.icon as any} size={24} />
+                    </div>
                     <h3 className="mt-5 font-display text-2xl font-bold">{f.title}</h3>
                     <p className="mt-2 text-muted">{f.text}</p>
                     <p className="mt-5 text-sm font-semibold text-brand">Explore <span className="inline-block transition group-hover:translate-x-1">→</span></p>
@@ -199,7 +203,7 @@ export default async function Home() {
                   <div className="glass rounded-3xl p-8">
                     <div className="flex items-center gap-4">
                       <span className="font-display text-6xl font-bold text-white/10">{s.k}</span>
-                      <span className="text-4xl">{s.icon}</span>
+                      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/10 text-white"><Icon name={s.icon as any} size={26} /></span>
                     </div>
                     <h3 className="mt-3 font-display text-3xl font-bold">{s.title}</h3>
                     <p className="mt-2 text-white/70">{s.text}</p>
@@ -329,7 +333,7 @@ export default async function Home() {
               <p className="mt-4 text-white/75">Create a free account, take a quiz, say hi in #general and join your first live room today.</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/login" className="inline-flex rounded-full bg-white px-6 py-3 font-semibold text-brand hover:bg-cream">Create free account</Link>
-                <Link href="/speak" className="glass inline-flex rounded-full px-6 py-3 font-semibold hover:bg-white/15">🎙️ Try the Speaking Studio</Link>
+                <Link href="/speak" className="glass inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold hover:bg-white/15"><Icon name="microphone" size={16} /> Try the Speaking Studio</Link>
               </div>
             </div>
           </div>

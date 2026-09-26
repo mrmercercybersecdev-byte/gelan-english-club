@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -9,6 +8,7 @@ import Markdown from "@/components/Markdown";
 import { formatLongDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/session";
 import { awardXp } from "@/lib/award";
+import BlogCover from "@/components/BlogCover";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   return (
     <article>
       <header className="relative overflow-hidden bg-ink text-white">
-        {post.coverImage && <Image src={post.coverImage} alt="" fill priority sizes="100vw" className="object-cover opacity-30" />}
+        {post.coverImage && <BlogCover src={post.coverImage} alt="" priority sizes="100vw" className="object-cover opacity-30" />}
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
         <div className="relative mx-auto max-w-3xl px-5 pb-14 pt-20">
           <Link href="/blog" className="text-sm text-white/70 hover:text-white">← All articles</Link>

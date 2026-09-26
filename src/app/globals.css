@@ -1,16 +1,18 @@
 @import "tailwindcss";
 
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+
 @theme {
-  --color-cream: #fbf7f0;
-  --color-paper: #f4ede1;
-  --color-ink: #1d1b18;
-  --color-muted: #6b645a;
-  --color-brand: #b8322a;
-  --color-brand-dark: #93261f;
-  --color-navy: #1f2d4a;
-  --color-gold: #d9a441;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-cream: #f7f4ef;
+  --color-paper: #efe7dc;
+  --color-ink: #171a2d;
+  --color-muted: #5f667b;
+  --color-brand: #cc5b46;
+  --color-brand-dark: #a94a38;
+  --color-navy: #1d2443;
+  --color-gold: #d7a653;
+  --font-serif: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Manrope", "Segoe UI", sans-serif;
 }
 
 html {
@@ -19,11 +21,15 @@ html {
 
 body {
   font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top, rgba(215, 166, 83, 0.18), transparent 30%),
+    linear-gradient(180deg, #faf6f1 0%, #f5f0e8 100%);
+  color: var(--color-ink);
 }
 
 .font-display {
   font-family: var(--font-serif);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .input {

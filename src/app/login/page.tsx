@@ -11,9 +11,9 @@ import { asc } from "drizzle-orm";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; missing?: string }> }) {
   await ensureSeed();
-  const { next, error } = await searchParams;
+  const { next, error, missing } = await searchParams;
   const safe = next && next.startsWith("/") && !next.startsWith("//") && next !== "/login" ? next : "/profile";
   if (await getCurrentUser()) redirect(safe);
   const groups = await db
@@ -34,7 +34,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
       <div className="mx-auto w-full max-w-md">
-        <AuthForms next={safe} groups={groups} error={error ? "Google sign-in could not be completed. Please try again or use your username and password." : undefined} />
+        <AuthForms next={safe} groups={groups} error={error === "google_unconfigured" ? `Google sign-in is not configured in Vercel. Add: ${missing || "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SITE_URL"}.` : error ? "Google sign-in could not be completed. Please try again or use your username and password." : undefined} />
       </div>
     </div>
   );

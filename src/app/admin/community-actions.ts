@@ -7,6 +7,7 @@ import { isAdmin } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
 import { awardXp } from "@/lib/award";
 import { notify } from "@/lib/notify";
+import { recordAudit } from "@/lib/audit";
 import { logInfo } from "@/lib/security";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -17,6 +18,13 @@ async function guard() {
   if (!(await isAdmin())) throw new Error("Unauthorized");
   const u = await getCurrentUser();
   return u?.displayName ?? "Organiser";
+}
+
+async function contentGuard() {
+  if (await isAdmin()) return "Organiser";
+  const u = await getCurrentUser();
+  if (!u || !["admin", "leader", "teacher"].includes(u.role)) throw new Error("Unauthorized");
+  return u.displayName;
 }
 const s = (fd: FormData, k: string, max = 500) => String(fd.get(k) ?? "").trim().slice(0, max);
 const slugify = (x: string) => x.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 60);
@@ -74,7 +82,7 @@ export async function revokeSubmissionAction(fd: FormData) {
 
 /* ---------------- Announcements ---------------- */
 export async function saveAnnouncementAction(_p: FormState, fd: FormData): Promise<FormState> {
-  await guard();
+  await contentGuard();
   const id = Number(fd.get("id") || 0);
   const title = s(fd, "title", 160);
   const body = s(fd, "body", 8000);
@@ -97,12 +105,13 @@ export async function saveAnnouncementAction(_p: FormState, fd: FormData): Promi
   };
   if (id) await db.update(announcements).set(values).where(eq(announcements.id, id));
   else await db.insert(announcements).values(values);
+  await recordAudit(id ? "announcement.update" : "announcement.create", "announcement", id || undefined, { title, published: values.published });
   revalidatePath("/", "layout");
   redirect("/admin?tab=announcements");
 }
 
 export async function announcementOpAction(fd: FormData) {
-  await guard();
+  await contentGuard();
   const id = Number(fd.get("id"));
   const op = String(fd.get("op"));
   const [a] = await db.select().from(announcements).where(eq(announcements.id, id));

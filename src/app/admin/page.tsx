@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { db } from "@/db";
-import { events, members, messages, posts, rsvps, users, chatMessages, blogPosts, channels, meetRooms, meetPeers, submissions, groupMembers } from "@/db/schema";
+import { auditLogs, events, members, messages, posts, rsvps, users, chatMessages, blogPosts, channels, meetRooms, meetPeers, submissions, groupMembers } from "@/db/schema";
 import { levelFromXp } from "@/lib/xp";
 import { Avatar } from "@/components/SiteHeader";
 import BlogEditor from "./BlogEditor";
@@ -17,7 +17,7 @@ import {
   userAdminAction,
 } from "./admin-actions";
 import { desc, asc, eq, gt, sql } from "drizzle-orm";
-import { isAdmin } from "@/lib/auth";
+import { isAdmin, isContentManager } from "@/lib/auth";
 import { ensureSeed } from "@/lib/seed";
 import { formatDate, formatTime, timeAgo } from "@/lib/format";
 import {
@@ -49,6 +49,7 @@ const TABS = [
   ["members", "✨ Applications"],
   ["messages", "✉️ Messages"],
   ["posts", "💡 Phrase Wall"],
+  ["logs", "🛡️ System logs"],
 ] as const;
 
 const STATUS_STYLE: Record<string, string> = {
@@ -58,7 +59,9 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; edit?: string; status?: string }> }) {
-  if (!(await isAdmin())) {
+  const fullAdmin = await isAdmin();
+  const contentManager = fullAdmin || await isContentManager();
+  if (!contentManager) {
     return (
       <div className="mx-auto max-w-md px-5 py-20">
         <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
@@ -72,7 +75,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   await ensureSeed();
   const { tab: rawTab, edit, status } = await searchParams;
-  const tab = TABS.some(([k]) => k === rawTab) ? rawTab! : "submissions";
+  const contentTabs = new Set(["announcements", "blog"]);
+  const visibleTabs = fullAdmin ? TABS : TABS.filter(([key]) => contentTabs.has(key));
+  const tab = visibleTabs.some(([k]) => k === rawTab) ? rawTab! : fullAdmin ? "submissions" : "blog";
 
   const c = sql<number>`count(*)::int`;
   const [[subPend], [grpPend]] = await Promise.all([
@@ -92,7 +97,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const counts = { events: ev.n, members: mem.n, pending: pend.n, rsvps: rs.n, messages: msg.n, users: us.n, chats: cm.n, blog: bp.n };
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-12">
+    <div className="mx-auto w-full max-w-[1600px] px-4 py-12 sm:px-6 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-widest text-brand">Organiser</p>
@@ -108,7 +113,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           ⚠️ <strong>Security:</strong> organiser password login is not configured. Set the <code>ADMIN_PASSWORD</code> environment variable before going live.
         </div>
       )}
-      <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-5">
         {[
           ["Submissions to review", subPend.n],
           ["Group join requests", grpPend.n],
@@ -128,12 +133,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
-      <nav className="mt-10 flex flex-wrap gap-2 border-b border-black/10 pb-3">
-        {TABS.map(([k, label]) => (
+      <nav aria-label="Dashboard sections" className="mt-10 flex gap-2 overflow-x-auto border-b border-black/10 pb-3">
+        {visibleTabs.map(([k, label]) => (
           <Link
             key={k}
             href={`/admin?tab=${k}`}
-            className={`rounded-full px-4 py-2 text-sm font-medium ${tab === k ? "bg-ink text-white" : "hover:bg-black/5"}`}
+            className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${tab === k ? "bg-ink text-white" : "hover:bg-black/5"}`}
           >
             {label}
           </Link>
@@ -156,7 +161,23 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "members" && <MembersTab />}
         {tab === "messages" && <MessagesTab />}
         {tab === "posts" && <PostsTab />}
+        {tab === "logs" && <LogsTab />}
       </div>
+    </div>
+  );
+}
+
+async function LogsTab() {
+  const logs = await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(200);
+  return (
+    <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-black/5">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-paper text-xs uppercase tracking-wider text-muted"><tr><th className="p-3">Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+        <tbody className="divide-y divide-black/5">
+          {logs.map((log) => <tr key={log.id}><td className="whitespace-nowrap p-3 text-xs text-muted">{timeAgo(log.createdAt)}</td><td>{log.actorRole}</td><td className="font-semibold">{log.action}</td><td>{log.targetType ?? "—"}{log.targetId ? ` #${log.targetId}` : ""}</td><td className="max-w-xs truncate text-xs text-muted">{log.metadata ?? "—"}</td></tr>)}
+        </tbody>
+      </table>
+      {!logs.length && <p className="p-5 text-muted">No audit entries yet.</p>}
     </div>
   );
 }
@@ -164,17 +185,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 async function EventsTab() {
   const list = await db.select().from(events).orderBy(asc(events.startsAt));
   const allRsvps = await db.select().from(rsvps).orderBy(asc(rsvps.createdAt));
+  const now = new Date();
   const byEvent = new Map<number, typeof allRsvps>();
   for (const r of allRsvps) {
     byEvent.set(r.eventId, [...(byEvent.get(r.eventId) ?? []), r]);
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-4">
         {list.map((e) => {
           const rs = byEvent.get(e.id) ?? [];
-          const past = e.startsAt.getTime() < Date.now();
+          const past = e.startsAt < now;
           return (
             <details key={e.id} className="group rounded-2xl bg-white ring-1 ring-black/5">
               <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
@@ -445,7 +467,8 @@ async function ChannelsTab() {
 }
 
 async function RoomsTab() {
-  const cutoff = new Date(Date.now() - 20_000);
+  const cutoff = new Date();
+  cutoff.setSeconds(cutoff.getSeconds() - 20);
   const list = await db
     .select({ code: meetRooms.code, title: meetRooms.title, hostName: meetRooms.hostName, createdAt: meetRooms.createdAt, live: sql<number>`count(${meetPeers.id}) filter (where ${meetPeers.lastSeen} > ${cutoff})::int` })
     .from(meetRooms)

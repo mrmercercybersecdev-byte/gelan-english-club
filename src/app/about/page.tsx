@@ -2,12 +2,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { db } from "@/db";
 import { champions, events, livestreams, milestones, teamMembers, users, xpLog } from "@/db/schema";
-import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { ensureSeed } from "@/lib/seed";
 import { getCurrentUser } from "@/lib/session";
 import DnaHelix from "@/components/fx/DnaHelix";
-import { Counter, Reveal, TiltCard } from "@/components/fx/Effects";
+import { Counter, Reveal } from "@/components/fx/Effects";
 import { Avatar } from "@/components/SiteHeader";
+import Icon, { type IconName } from "@/components/Icon";
 import AboutNav from "./AboutNav";
 import Timeline from "./Timeline";
 import ChampionsHall from "./ChampionsHall";
@@ -26,11 +27,11 @@ const SCHEDULE = [
   ["Sat", "Workshops & Bootcamps", "10:00"],
 ];
 
-const VALUES = [
-  ["💛", "Kindness first", "We correct gently, listen patiently and celebrate progress."],
-  ["🗣️", "Everyone speaks", "Facilitators make sure quieter voices get space too."],
-  ["🌍", "Curiosity", "We learn about each other's cultures as much as the language."],
-  ["🚀", "Always improving", "From café tables to AI tutors — we keep reinventing how to learn."],
+const VALUES: readonly (readonly [IconName, string, string])[] = [
+  ["check", "Kindness first", "We correct gently, listen patiently and celebrate progress."],
+  ["microphone", "Everyone speaks", "Facilitators make sure quieter voices get space too."],
+  ["globe", "Curiosity", "We learn about each other's cultures as much as the language."],
+  ["sparkles", "Always improving", "From café tables to AI tutors — we keep reinventing how to learn."],
 ];
 
 const FAQ = [
@@ -47,7 +48,6 @@ function initials(n: string) {
 
 export default async function AboutPage() {
   await ensureSeed();
-  const since = new Date(Date.now() - 30 * 86_400_000);
   const [team, champs, history, streams, xpChamps, [ev], [us], me] = await Promise.all([
     db.select().from(teamMembers).where(eq(teamMembers.active, true)).orderBy(asc(teamMembers.sortOrder), asc(teamMembers.id)),
     db.select().from(champions).orderBy(desc(champions.year), asc(champions.place), desc(champions.id)),
@@ -57,7 +57,7 @@ export default async function AboutPage() {
       .select({ id: users.id, displayName: users.displayName, avatarColor: users.avatarColor, country: users.country, total: sql<number>`sum(${xpLog.amount})::int` })
       .from(xpLog)
       .innerJoin(users, eq(users.id, xpLog.userId))
-      .where(and(gt(xpLog.createdAt, since), eq(users.banned, false)))
+      .where(and(sql`${xpLog.createdAt} > now() - interval '30 days'`, eq(users.banned, false)))
       .groupBy(users.id)
       .orderBy(desc(sql`sum(${xpLog.amount})`))
       .limit(3),
@@ -98,7 +98,7 @@ export default async function AboutPage() {
         <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-16 lg:pt-24">
           <Reveal>
             <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold">
-              🏛️ About Gelan English Club {liveNow && <span className="flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />LIVE NOW</span>}
+              <Icon name="people" size={16} /> About Gelan English Club {liveNow && <span className="flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />LIVE NOW</span>}
             </span>
           </Reveal>
           <Reveal delay={100}>
@@ -159,10 +159,10 @@ export default async function AboutPage() {
               </p>
             </Reveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {VALUES.map(([i, t, d], k) => (
+              {VALUES.map(([icon, t, d], k) => (
                 <Reveal key={t} delay={k * 80}>
                   <div className="h-full rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md">
-                    <p className="font-semibold">{i} {t}</p>
+                    <p className="flex items-center gap-2 font-semibold"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"><Icon name={icon} size={18} /></span>{t}</p>
                     <p className="mt-1 text-sm text-muted">{d}</p>
                   </div>
                 </Reveal>
@@ -180,11 +180,11 @@ export default async function AboutPage() {
       {/* ================= HISTORY ================= */}
       <section id="history" className="scroll-mt-28 bg-[#0f1424] py-24 text-white">
         <div className="mx-auto max-w-6xl px-5">
-          <Reveal>
+          <div>
             <p className="text-center text-sm font-semibold uppercase tracking-widest text-gold">Our history</p>
             <h2 className="mt-2 text-center font-display text-4xl font-bold md:text-5xl">{firstYear} → today → tomorrow</h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-white/60">Scroll through the moments that shaped the club. The line lights up as you travel through time.</p>
-          </Reveal>
+          </div>
           <div className="mt-16">
             <Timeline items={history.map((m) => ({ id: m.id, year: m.year, month: m.month, title: m.title, description: m.description, icon: m.icon, imageUrl: m.imageUrl }))} />
           </div>
@@ -194,49 +194,38 @@ export default async function AboutPage() {
       {/* ================= LEADERS ================= */}
       <section id="leaders" className="scroll-mt-28 py-24">
         <div className="mx-auto max-w-7xl px-5">
-          <Reveal>
+          <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-brand">Leadership team</p>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <h2 className="mt-2 font-display text-4xl font-bold md:text-5xl">Meet the leaders</h2>
-              <p className="text-sm text-muted">✨ Hover or tap a card to flip it</p>
-            </div>
-          </Reveal>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {leaders.map((l, i) => (
-              <Reveal key={l.id} delay={i * 100}>
-                <div tabIndex={0} className="flip-card h-[440px] rounded-[2rem] outline-none">
-                  <div className="flip-inner rounded-[2rem] shadow-xl">
-                    {/* front */}
-                    <div className="flip-face bg-ink">
-                      {l.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={l.photoUrl} alt={l.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="grid h-full place-items-center font-display text-8xl font-bold text-white" style={{ background: l.color }}>{initials(l.name)}</div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                        <span className="inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: l.color }}>{l.title}</span>
-                        <p className="mt-2 font-display text-3xl font-bold">{l.name}</p>
-                        <p className="text-sm text-white/70">{l.country}{l.joinedYear ? ` · since ${l.joinedYear}` : ""}</p>
-                      </div>
-                      <span className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/20 text-white backdrop-blur">↻</span>
-                    </div>
-                    {/* back */}
-                    <div className="flip-face flip-back flex flex-col p-7 text-white" style={{ background: `linear-gradient(145deg, ${l.color}, #0f1424)` }}>
-                      <span className="font-display text-6xl leading-none text-white/30">&ldquo;</span>
-                      <p className="-mt-4 font-display text-xl font-bold leading-snug">{l.quote}</p>
-                      <p className="mt-4 text-sm leading-relaxed text-white/80">{l.bio}</p>
-                      <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
-                        {l.specialties.split(",").filter(Boolean).map((s) => (
-                          <span key={s} className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold">{s.trim()}</span>
-                        ))}
-                      </div>
-                      <p className="mt-4 text-xs text-white/60">— {l.name}, {l.title}</p>
+            <h2 className="mt-2 font-display text-4xl font-bold md:text-5xl">Meet the leaders</h2>
+            <p className="mt-3 max-w-2xl text-muted">The team shaping the club, building welcoming spaces and helping our community grow.</p>
+          </div>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {leaders.map((l) => (
+                <article key={l.id} aria-labelledby={`leader-${l.id}`} className="group flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-[0_14px_50px_rgba(20,27,44,.08)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_65px_rgba(20,27,44,.14)] motion-reduce:transform-none motion-reduce:transition-none">
+                  <div className="relative h-56 overflow-hidden bg-ink sm:h-64">
+                    {l.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={l.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none" />
+                    ) : (
+                      <div className="grid h-full place-items-center font-display text-7xl font-bold text-white" style={{ background: `linear-gradient(145deg, ${l.color}, #0f1424)` }}>{initials(l.name)}</div>
+                    )}
+                    <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+                      <span className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold tracking-wide" style={{ background: l.color }}>{l.title}</span>
+                      <h3 id={`leader-${l.id}`} className="mt-3 font-display text-2xl font-bold leading-tight sm:text-3xl">{l.name}</h3>
+                      <p className="mt-1 text-sm text-white/75">{l.country}{l.joinedYear ? ` · since ${l.joinedYear}` : ""}</p>
                     </div>
                   </div>
-                </div>
-              </Reveal>
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
+                    <p className="font-display text-lg font-semibold leading-snug text-ink">&ldquo;{l.quote}&rdquo;</p>
+                    <p className="mt-3 text-sm leading-relaxed text-muted">{l.bio}</p>
+                    <div className="mt-auto flex flex-wrap gap-2 pt-5">
+                      {l.specialties.split(",").filter(Boolean).map((s) => (
+                        <span key={s} className="rounded-full bg-paper px-3 py-1.5 text-xs font-semibold text-ink/75">{s.trim()}</span>
+                      ))}
+                    </div>
+                  </div>
+                </article>
             ))}
           </div>
         </div>
@@ -245,49 +234,43 @@ export default async function AboutPage() {
       {/* ================= FACILITATORS ================= */}
       <section id="facilitators" className="scroll-mt-28 bg-paper py-24">
         <div className="mx-auto max-w-7xl px-5">
-          <Reveal>
+          <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-brand">The heart of every session</p>
             <h2 className="mt-2 font-display text-4xl font-bold md:text-5xl">Our facilitators</h2>
             <p className="mt-3 max-w-2xl text-muted">Volunteers who guide conversations, run workshops and make every newcomer feel at home.</p>
-          </Reveal>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {facilitators.map((f, i) => (
-              <Reveal key={f.id} delay={(i % 4) * 80}>
-                <TiltCard className="h-full rounded-3xl">
-                  <div className="group h-full rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-black/5">
-                    <div className="relative mx-auto h-24 w-24">
-                      <div className="absolute inset-0 animate-spin-slow rounded-full opacity-70" style={{ background: `conic-gradient(${f.color}, #d9a441, ${f.color})` }} />
+          </div>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {facilitators.map((f) => (
+                <article key={f.id} aria-labelledby={`facilitator-${f.id}`} className="group h-full rounded-3xl bg-white p-6 text-center shadow-[0_14px_50px_rgba(20,27,44,.07)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_65px_rgba(20,27,44,.12)] motion-reduce:transform-none motion-reduce:transition-none">
+                    <div className="relative mx-auto h-24 w-24 rounded-full p-[3px] transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none" style={{ background: `conic-gradient(${f.color}, #d9a441, ${f.color})` }}>
                       <div className="absolute inset-[3px] grid place-items-center overflow-hidden rounded-full bg-white">
                         {f.photoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={f.photoUrl} alt={f.name} className="h-full w-full object-cover" />
+                          <img src={f.photoUrl} alt="" loading="lazy" className="h-full w-full rounded-full object-cover" />
                         ) : (
-                          <span className="grid h-full w-full place-items-center font-display text-3xl font-bold text-white" style={{ background: f.color }}>{initials(f.name)}</span>
+                          <span className="grid h-full w-full place-items-center rounded-full font-display text-3xl font-bold text-white" style={{ background: f.color }}>{initials(f.name)}</span>
                         )}
                       </div>
                     </div>
-                    <p className="mt-4 font-display text-xl font-bold">{f.name}</p>
-                    <p className="text-sm font-semibold" style={{ color: f.color }}>{f.title}</p>
+                    <h3 id={`facilitator-${f.id}`} className="mt-4 font-display text-xl font-bold">{f.name}</h3>
+                    <p className="mt-1 text-sm font-semibold" style={{ color: f.color }}>{f.title}</p>
                     <p className="text-xs text-muted">{f.country}{f.joinedYear ? ` · since ${f.joinedYear}` : ""}</p>
-                    {f.bio && <p className="mt-3 text-sm text-muted">{f.bio}</p>}
-                    <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                    {f.bio && <p className="mt-4 text-sm leading-relaxed text-muted">{f.bio}</p>}
+                    <div className="mt-5 flex flex-wrap justify-center gap-2">
                       {f.specialties.split(",").filter(Boolean).map((s) => (
-                        <span key={s} className="rounded-full bg-paper px-2 py-0.5 text-[11px] font-medium">{s.trim()}</span>
+                        <span key={s} className="rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-ink/75">{s.trim()}</span>
                       ))}
                     </div>
-                  </div>
-                </TiltCard>
-              </Reveal>
+                </article>
             ))}
-            <Reveal delay={200}>
-              <Link href="/contact" className="group grid h-full min-h-[260px] place-items-center rounded-3xl border-2 border-dashed border-brand/40 bg-white/50 p-6 text-center transition hover:border-brand hover:bg-white">
-                <div>
-                  <span className="inline-block text-5xl transition group-hover:scale-125 group-hover:rotate-12">🙋</span>
-                  <p className="mt-3 font-display text-xl font-bold">This could be you</p>
-                  <p className="mt-1 text-sm text-muted">Become a volunteer facilitator →</p>
-                </div>
-              </Link>
-            </Reveal>
+            <Link href="/contact" className="group grid h-full min-h-[260px] place-items-center rounded-3xl border border-dashed border-brand/40 bg-white/55 p-6 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand hover:bg-white hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand motion-reduce:transform-none motion-reduce:transition-none">
+              <div>
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand/10 text-brand"><Icon name="people" size={24} /></span>
+                <p className="mt-4 font-display text-xl font-bold">This could be you</p>
+                <p className="mt-1 text-sm text-muted">Become a volunteer facilitator</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand">Explore volunteering <Icon name="arrow-up-right" size={16} /></span>
+              </div>
+            </Link>
           </div>
         </div>
       </section>
@@ -305,13 +288,13 @@ export default async function AboutPage() {
             <Reveal delay={100}>
               <div className="mx-auto mt-10 max-w-4xl rounded-3xl bg-gradient-to-r from-amber-100 via-white to-rose-100 p-5 ring-1 ring-gold/30">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-display text-lg font-bold">⚡ {xpLabel} <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 align-middle text-[10px] font-bold text-emerald-800">LIVE</span></p>
+                  <p className="flex items-center gap-2 font-display text-lg font-bold"><Icon name="sparkles" size={20} className="text-gold" />{xpLabel} <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 align-middle text-[10px] font-bold text-emerald-800">LIVE</span></p>
                   <Link href="/leaderboard" className="text-sm font-semibold text-brand hover:underline">Full leaderboard →</Link>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   {xpTop.map((u, i) => (
                     <div key={u.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
-                      <span className="text-2xl">{["🥇", "🥈", "🥉"][i]}</span>
+                      <span className="inline-flex h-10 shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 text-xs font-bold text-brand"><Icon name="award" size={16} />#{i + 1}</span>
                       <Avatar name={u.displayName} color={u.avatarColor} size={40} />
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{u.displayName}</p>

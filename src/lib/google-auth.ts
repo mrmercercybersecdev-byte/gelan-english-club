@@ -42,7 +42,15 @@ async function availableUsername(email: string) {
 }
 
 export function googleConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.SITE_URL);
+  return googleConfigurationIssues().length === 0;
+}
+
+export function googleConfigurationIssues() {
+  return [
+    !process.env.GOOGLE_CLIENT_ID && "GOOGLE_CLIENT_ID",
+    !process.env.GOOGLE_CLIENT_SECRET && "GOOGLE_CLIENT_SECRET",
+    !process.env.SITE_URL && "SITE_URL",
+  ].filter((value): value is string => Boolean(value));
 }
 
 export function googleRedirectUri() {

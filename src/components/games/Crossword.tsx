@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateCrossword, type Crossword as CW, type Placed } from "@/lib/games";
 import { Confetti, GameShell, Stat, fmtTime, submitScore } from "./shared";
+import Icon from "@/components/Icon";
 
 type Dir = "across" | "down";
 const KEYS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
@@ -39,7 +40,10 @@ export default function Crossword() {
     setTimeout(() => boardRef.current?.focus(), 50);
   }, []);
 
-  useEffect(() => newGame(), [newGame]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => newGame());
+    return () => window.cancelAnimationFrame(frame);
+  }, [newGame]);
   useEffect(() => {
     if (done || !start) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -188,7 +192,7 @@ export default function Crossword() {
   return (
     <GameShell
       title="Crossword"
-      icon="🧩"
+      icon="book"
       gradient="from-indigo-500 via-violet-600 to-fuchsia-600"
       stats={<><Stat label="Time" value={fmtTime(Math.max(0, elapsed))} /><Stat label="Filled" value={`${Math.round((filled / total) * 100)}%`} /><Stat label="Penalty" value={penalty} /></>}
     >
@@ -199,42 +203,47 @@ export default function Crossword() {
         <div className="grid gap-8 lg:grid-cols-[auto_1fr]">
           <div>
             {activeWord && (
-              <div className="mb-3 rounded-2xl bg-ink px-4 py-3 text-white">
+              <div aria-live="polite" className="mb-3 rounded-2xl bg-ink px-4 py-3 text-white">
                 <span className="mr-2 rounded bg-white/15 px-2 py-0.5 text-xs font-bold">{activeWord.num} {activeWord.dir.toUpperCase()}</span>
                 {activeWord.clue} <span className="text-white/50">({activeWord.word.length})</span>
               </div>
             )}
-            <div ref={boardRef} tabIndex={0} onKeyDown={onKey} className="inline-block rounded-2xl bg-ink p-2 shadow-2xl outline-none ring-offset-4 focus:ring-4 focus:ring-violet-400/50">
-              <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${cw.cols}, ${cellSize}px)` }}>
-                {cw.grid.map((row, r) =>
-                  row.map((ch, c) => {
-                    const k = `${r},${c}`;
-                    if (!ch) return <div key={k} style={{ width: cellSize, height: cellSize }} />;
-                    const isSel = sel.r === r && sel.c === c;
-                    const inWord = activeCells.has(k);
-                    return (
-                      <button
-                        key={k}
-                        onClick={() => clickCell(r, c)}
-                        tabIndex={-1}
-                        style={{ width: cellSize, height: cellSize }}
-                        className={`relative grid place-items-center rounded-[4px] font-display font-bold uppercase transition ${
-                          isSel ? "scale-105 bg-gold text-ink shadow-lg" : inWord ? "bg-violet-200 text-ink" : "bg-white text-ink hover:bg-violet-50"
-                        } ${wrong.has(k) ? "!bg-rose-300" : ""} ${done ? "animate-pop" : ""}`}
-                      >
-                        {numbers.has(k) && <span className="absolute left-0.5 top-0 text-[9px] font-bold leading-none text-ink/60">{numbers.get(k)}</span>}
-                        <span className={`${revealed.has(k) ? "text-violet-700" : ""}`} style={{ fontSize: cellSize * 0.5 }}>{fill[r]?.[c]}</span>
-                      </button>
-                    );
-                  }),
-                )}
+            <div className="-mx-2 overflow-x-auto px-2 pb-2 sm:mx-0 sm:px-0">
+              <div ref={boardRef} role="group" aria-label="Crossword grid. Use the arrow keys to move, type letters to fill cells, and press Space or Tab for the next clue." tabIndex={0} onKeyDown={onKey} className="inline-block rounded-2xl bg-ink p-2 shadow-2xl outline-none ring-offset-4 focus:ring-4 focus:ring-violet-400/50">
+                <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${cw.cols}, ${cellSize}px)` }}>
+                  {cw.grid.map((row, r) =>
+                    row.map((ch, c) => {
+                      const k = `${r},${c}`;
+                      if (!ch) return <div key={k} style={{ width: cellSize, height: cellSize }} />;
+                      const isSel = sel.r === r && sel.c === c;
+                      const inWord = activeCells.has(k);
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          aria-label={`${numbers.has(k) ? `Clue ${numbers.get(k)}, ` : ""}row ${r + 1}, column ${c + 1}${fill[r]?.[c] ? `, ${fill[r][c]}` : ", blank"}${revealed.has(k) ? ", revealed" : ""}`}
+                          aria-current={isSel ? "true" : undefined}
+                          onClick={() => clickCell(r, c)}
+                          tabIndex={-1}
+                          style={{ width: cellSize, height: cellSize }}
+                          className={`relative grid place-items-center rounded-[4px] font-display font-bold uppercase transition motion-reduce:transition-none ${
+                            isSel ? "scale-105 bg-gold text-ink shadow-lg" : inWord ? "bg-violet-200 text-ink" : "bg-white text-ink hover:bg-violet-50"
+                          } ${wrong.has(k) ? "!bg-rose-300" : ""} ${done ? "animate-pop motion-reduce:animate-none" : ""}`}
+                        >
+                          {numbers.has(k) && <span className="absolute left-0.5 top-0 text-[9px] font-bold leading-none text-ink/60">{numbers.get(k)}</span>}
+                          <span className={`${revealed.has(k) ? "text-violet-700" : ""}`} style={{ fontSize: cellSize * 0.5 }}>{fill[r]?.[c]}</span>
+                        </button>
+                      );
+                    }),
+                  )}
+                </div>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={check} className="btn-ghost !py-2 text-sm">✔ Check (+40)</button>
-              <button onClick={revealLetter} className="btn-ghost !py-2 text-sm">🔤 Reveal letter (+100)</button>
-              <button onClick={revealWord} className="btn-ghost !py-2 text-sm">📖 Reveal word (+250)</button>
-              <button onClick={() => newGame()} className="btn-primary !py-2 text-sm">↻ New puzzle</button>
+              <button type="button" onClick={check} className="btn-ghost inline-flex min-h-10 items-center gap-1.5 !py-2 text-sm"><Icon name="check" size={16} />Check (+40)</button>
+              <button type="button" onClick={revealLetter} className="btn-ghost inline-flex min-h-10 items-center gap-1.5 !py-2 text-sm"><Icon name="sparkles" size={16} />Reveal letter (+100)</button>
+              <button type="button" onClick={revealWord} className="btn-ghost inline-flex min-h-10 items-center gap-1.5 !py-2 text-sm"><Icon name="book" size={16} />Reveal word (+250)</button>
+              <button type="button" onClick={() => newGame()} className="btn-primary inline-flex min-h-10 items-center gap-1.5 !py-2 text-sm"><Icon name="game" size={16} />New puzzle</button>
             </div>
             <div className="mt-4 space-y-1.5 lg:hidden">
               {KEYS.map((row) => (
@@ -244,7 +253,7 @@ export default function Crossword() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 hidden text-xs text-muted lg:block">Type to fill · arrows to move · click a cell twice to switch direction · Tab/Space for next clue</p>
+            <p className="mt-3 text-xs text-muted">Focus the grid to play: type letters to fill · arrows to move or change direction · click a cell twice to switch direction · Tab/Space for next clue. On touch screens, use the letter keys below.</p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -276,7 +285,7 @@ export default function Crossword() {
       {done && modal && (
         <div className="fixed inset-0 z-[65] grid place-items-center bg-ink/60 p-4 backdrop-blur-sm">
           <div className="animate-toast w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
-            <p className="text-6xl">🏆</p>
+            <Icon name="trophy" size={48} className="mx-auto text-gold" />
             <h2 className="mt-3 font-display text-3xl font-bold">Puzzle solved!</h2>
             <p className="mt-1 text-muted">in {fmtTime(done.ms)}</p>
             <p className="animate-pop mt-4 font-display text-6xl font-bold text-violet-600">{done.score}</p>

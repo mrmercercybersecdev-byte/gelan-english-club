@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { champions, livestreams, milestones, teamMembers } from "@/db/schema";
 import { isAdmin } from "@/lib/auth";
 import { isValidStreamUrl } from "@/lib/embed";
+import { isSafePhotoUpload, isSafePhotoUrl } from "@/lib/image-url";
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -20,9 +21,8 @@ const n = (fd: FormData, k: string) => {
 function photo(fd: FormData) {
   const p = String(fd.get("photoUrl") ?? "").trim();
   if (!p) return null;
-  if (p.startsWith("data:image/") && p.length < 400_000) return p;
-  if (/^(https?:\/\/|\/)[^\s]+$/.test(p)) return p.slice(0, 500);
-  return null;
+  if (isSafePhotoUpload(p) || isSafePhotoUrl(p)) return p;
+  return undefined;
 }
 function refresh() {
   revalidatePath("/about");
@@ -36,6 +36,8 @@ export async function saveTeamMemberAction(_p: FormState, fd: FormData): Promise
   const name = s(fd, "name", 100);
   const title = s(fd, "title", 120);
   if (!name || !title) return { ok: false, message: "Name and title are required." };
+  const photoUrl = photo(fd);
+  if (photoUrl === undefined) return { ok: false, message: "Use an uploaded JPEG or a secure HTTPS image URL." };
   const values = {
     name,
     title,
@@ -43,7 +45,7 @@ export async function saveTeamMemberAction(_p: FormState, fd: FormData): Promise
     bio: s(fd, "bio", 2000),
     quote: s(fd, "quote", 280) || null,
     country: s(fd, "country", 60) || null,
-    photoUrl: photo(fd),
+    photoUrl,
     specialties: s(fd, "specialties", 300),
     joinedYear: n(fd, "joinedYear"),
     color: /^#[0-9a-f]{6}$/i.test(s(fd, "color", 7)) ? s(fd, "color", 7) : "#b8322a",
@@ -100,6 +102,8 @@ export async function saveChampionAction(_p: FormState, fd: FormData): Promise<F
   const competition = s(fd, "competition", 160);
   const year = n(fd, "year");
   if (!name || !award || !competition || !year) return { ok: false, message: "Name, award, competition and year are required." };
+  const photoUrl = photo(fd);
+  if (photoUrl === undefined) return { ok: false, message: "Use an uploaded JPEG or a secure HTTPS image URL." };
   const values = {
     name,
     award,
@@ -109,7 +113,7 @@ export async function saveChampionAction(_p: FormState, fd: FormData): Promise<F
     season: s(fd, "season", 40),
     year,
     country: s(fd, "country", 60) || null,
-    photoUrl: photo(fd),
+    photoUrl,
     description: s(fd, "description", 1000),
   };
   if (id) await db.update(champions).set(values).where(eq(champions.id, id));
@@ -133,13 +137,15 @@ export async function saveMilestoneAction(_p: FormState, fd: FormData): Promise<
   const title = s(fd, "title", 160);
   const year = n(fd, "year");
   if (!title || !year) return { ok: false, message: "Title and year are required." };
+  const imageUrl = photo(fd);
+  if (imageUrl === undefined) return { ok: false, message: "Use an uploaded JPEG or a secure HTTPS image URL." };
   const values = {
     title,
     year,
     month: s(fd, "month", 12) || null,
     description: s(fd, "description", 2000),
     icon: s(fd, "icon", 8) || "⭐",
-    imageUrl: photo(fd),
+    imageUrl,
     sortOrder: n(fd, "sortOrder") ?? 0,
   };
   if (id) await db.update(milestones).set(values).where(eq(milestones.id, id));

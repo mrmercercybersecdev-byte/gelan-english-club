@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { db } from "@/db";
@@ -7,6 +6,7 @@ import { and, desc, eq, ilike } from "drizzle-orm";
 import { ensureSeed } from "@/lib/seed";
 import { formatLongDate } from "@/lib/format";
 import { Reveal, TiltCard } from "@/components/fx/Effects";
+import BlogCover from "@/components/BlogCover";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Blog" };
@@ -41,7 +41,7 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
         <Reveal delay={100}>
           <Link href={`/blog/${hero.slug}`} className="group mt-10 grid overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-black/5 transition hover:shadow-xl md:grid-cols-2">
             <div className="relative min-h-[280px] overflow-hidden bg-paper">
-              {hero.coverImage && <Image src={hero.coverImage} alt="" fill sizes="(min-width:768px) 50vw, 100vw" className="object-cover transition duration-700 group-hover:scale-105" />}
+              {hero.coverImage && <BlogCover src={hero.coverImage} alt="" sizes="(min-width:768px) 50vw, 100vw" className="object-cover transition duration-700 group-hover:scale-105" />}
             </div>
             <div className="flex flex-col justify-center p-8 md:p-12">
               <p className="text-xs font-semibold uppercase tracking-widest text-brand">Featured · {formatLongDate(hero.createdAt)}</p>
@@ -59,7 +59,7 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
             <TiltCard className="h-full rounded-3xl">
               <Link href={`/blog/${p.slug}`} className="group block h-full overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
                 <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-brand/20 to-gold/30">
-                  {p.coverImage ? <Image src={p.coverImage} alt="" fill sizes="(min-width:1024px) 33vw, 50vw" className="object-cover transition duration-700 group-hover:scale-110" /> : <span className="absolute inset-0 grid place-items-center text-5xl">📰</span>}
+                  {p.coverImage ? <BlogCover src={p.coverImage} alt="" sizes="(min-width:1024px) 33vw, 50vw" className="object-cover transition duration-700 group-hover:scale-110" /> : <span className="absolute inset-0 grid place-items-center text-5xl">📰</span>}
                 </div>
                 <div className="p-6">
                   <p className="text-xs text-muted">{formatLongDate(p.createdAt)}</p>

@@ -19,17 +19,17 @@ const NAV = [
   { href: "/about", label: "About" },
 ];
 const MORE = [
-  { href: "/announcements", label: "📣 Announcements" },
-  { href: "/submit", label: "📤 Submit work" },
-  { href: "/verify", label: "✅ Verify a certificate" },
-  { href: "/speak", label: "🎙️ Speaking Studio" },
-  { href: "/blog", label: "📰 Blog" },
-  { href: "/about#champions", label: "🏆 Champions" },
-  { href: "/about#live", label: "🔴 Livestream" },
-  { href: "/board", label: "💡 Phrase Wall" },
-  { href: "/join", label: "✨ Membership" },
-  { href: "/contact", label: "✉️ Contact" },
-  { href: "/admin", label: "🛠️ Organisers" },
+  { href: "/announcements", label: "Announcements" },
+  { href: "/submit", label: "Submit work" },
+  { href: "/verify", label: "Verify certificate" },
+  { href: "/speak", label: "Speaking Studio" },
+  { href: "/blog", label: "Blog" },
+  { href: "/about#champions", label: "Champions" },
+  { href: "/about#live", label: "Livestream" },
+  { href: "/board", label: "Phrase Wall" },
+  { href: "/join", label: "Membership" },
+  { href: "/contact", label: "Contact" },
+  { href: "/admin", label: "Organisers" },
 ];
 
 export function Avatar({ name, color, size = 32 }: { name: string; color: string; size?: number }) {
@@ -102,7 +102,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
           ))}
           <div className="relative" ref={moreRef}>
             <button onClick={() => setMore((m) => !m)} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink/75 hover:bg-black/5">
-              More ▾
+              More
             </button>
             {more && (
               <div className="animate-toast absolute right-0 mt-2 max-h-[70vh] w-56 overflow-y-auto rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
@@ -121,7 +121,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
             onClick={() => window.dispatchEvent(new Event("wec:palette"))}
             className="hidden items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs text-muted hover:border-black/20 md:flex"
           >
-            🔍 <kbd className="rounded bg-paper px-1.5 font-sans">Ctrl K</kbd>
+            <span aria-hidden="true">⌕</span> <kbd className="rounded bg-paper px-1.5 font-sans">Ctrl K</kbd>
           </button>
           <NotificationBell loggedIn={!!user} />
           {user ? (
@@ -130,18 +130,18 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
                 <Avatar name={user.displayName} color={user.avatarColor} size={28} />
                 <span className="hidden text-left text-xs leading-tight sm:block">
                   <span className="block font-semibold">{user.displayName}</span>
-                  <span className="block text-muted">Lv {levelFromXp(user.xp)} · {user.xp} XP{user.streak ? ` · 🔥${user.streak}` : ""}</span>
+                  <span className="block text-muted">Lv {levelFromXp(user.xp)} · {user.xp} XP{user.streak ? ` · ${user.streak} day streak` : ""}</span>
                 </span>
               </button>
               {menu && (
                 <div className="animate-toast absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-                  <Link href="/profile" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">👤 My profile</Link>
-                  <Link href="/submit" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">📤 My submissions</Link>
-                  <Link href="/groups?mine=1" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">👥 My groups</Link>
-                  <Link href="/leaderboard" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">🏆 Leaderboard</Link>
-                  {user.role === "admin" && <Link href="/admin" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">🛠️ Admin</Link>}
+                  <Link href="/profile" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">My profile</Link>
+                  <Link href="/submit" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">My submissions</Link>
+                  <Link href="/groups?mine=1" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">My groups</Link>
+                  <Link href="/leaderboard" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">Leaderboard</Link>
+                  {user.role === "admin" && <Link href="/admin" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">Admin</Link>}
                   <form action={logoutUserAction}>
-                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-brand hover:bg-paper">↪ Log out</button>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-brand hover:bg-paper">Log out</button>
                   </form>
                 </div>
               )}

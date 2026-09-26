@@ -7,6 +7,7 @@ import CommandPalette from "@/components/CommandPalette";
 import XpToaster from "@/components/XpToaster";
 import LiveBanner from "@/components/LiveBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import SupportWidget from "@/components/SupportWidget";
 import { ScrollProgress, CursorGlow } from "@/components/fx/Effects";
 import { getCurrentUser, toPublic } from "@/lib/session";
 import { siteUrl } from "@/lib/site";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SiteHeader user={user} />
         <main className="relative z-[2] flex-1">{children}</main>
         <SiteFooter />
+        <SupportWidget />
         <CommandPalette />
         <XpToaster />
       </body>

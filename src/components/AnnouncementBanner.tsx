@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { announcements } from "@/db/schema";
 import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 import AnnouncementBannerClient from "./AnnouncementBannerClient";
-import { ANNOUNCE_STYLES } from "@/lib/announce";
+import { ANNOUNCE_ICONS, ANNOUNCE_STYLES } from "@/lib/announce";
 
 export default async function AnnouncementBanner() {
   try {
@@ -14,7 +14,7 @@ export default async function AnnouncementBanner() {
       .limit(1);
     if (!a) return null;
     const st = ANNOUNCE_STYLES[a.category] ?? ANNOUNCE_STYLES.news;
-    return <AnnouncementBannerClient id={a.id} title={a.title} icon={st.icon} gradient={st.banner} href={a.linkUrl || `/announcements#a-${a.id}`} label={a.linkLabel || "Read more"} />;
+    return <AnnouncementBannerClient id={a.id} title={a.title} icon={ANNOUNCE_ICONS[a.category] ?? "announcement"} gradient={st.banner} href={a.linkUrl || `/announcements#a-${a.id}`} label={a.linkLabel || "Read more"} />;
   } catch {
     return null;
   }

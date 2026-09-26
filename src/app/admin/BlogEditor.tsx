@@ -38,7 +38,7 @@ export default function BlogEditor({ post }: { post?: Post }) {
             // eslint-disable-next-line @next/next/no-img-element
             <button type="button" key={c} onClick={() => setCover(c)} className={`overflow-hidden rounded-xl ring-2 ${cover === c ? "ring-brand" : "ring-transparent"}`}><img src={c} alt="" className="h-14 w-20 object-cover" /></button>
           ))}
-          <input value={COVERS.includes(cover) ? "" : cover} onChange={(e) => setCover(e.target.value)} placeholder="…or image URL / path" className="input !w-56 !py-2 text-sm" />
+          <input value={COVERS.includes(cover) ? "" : cover} onChange={(e) => setCover(e.target.value)} maxLength={500} placeholder="…or secure HTTPS URL / /images/ path" className="input !w-56 !py-2 text-sm" />
         </div>
       </div>
       <div>
