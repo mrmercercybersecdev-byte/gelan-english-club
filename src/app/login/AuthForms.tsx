@@ -95,9 +95,6 @@ export default function AuthForms({ next, groups = [], error }: { next: string; 
           </div>
           <FormNotice state={loginState} />
           <SubmitButton className="w-full">Log in</SubmitButton>
-          <p className="rounded-xl bg-paper p-3 text-center text-xs text-muted">
-            Just exploring? Use the demo account <code className="font-semibold text-ink">demo</code> / <code className="font-semibold text-ink">demo1234</code>
-          </p>
         </form>
       )}
     </div>

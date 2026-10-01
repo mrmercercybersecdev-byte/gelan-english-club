@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Markdown from "@/components/Markdown";
-import { notifyXp } from "@/lib/client-xp";
+import { notifyXp, type XpResult } from "@/lib/client-xp";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Correction = { found: string; suggestion: string; why: string };
@@ -40,13 +40,19 @@ export default function TutorChat({ mode, intro, title }: { mode: string; intro:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, messages: next }),
       });
-      const data = await res.json();
-      setMessages((m) => [...m, { role: "assistant", content: data.reply ?? "Sorry, something went wrong." }]);
-      setSource(data.source);
+      const data = (await res.json()) as { reply?: string; error?: string; source?: string; corrections?: Correction[]; xp?: XpResult };
+      if (!res.ok) {
+        throw new Error(data.error || `AI request failed (HTTP ${res.status}).`);
+      }
+      if (!data.reply) {
+        throw new Error("The AI provider returned an empty response. Check its model and provider configuration.");
+      }
+      setMessages((m) => [...m, { role: "assistant", content: data.reply! }]);
+      setSource(data.source ?? "ai");
       setLastCorrections(data.corrections ?? []);
       notifyXp(data.xp, "Tutor practice");
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "⚠️ Network error — please try again." }]);
+    } catch (error) {
+      setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${error instanceof Error ? error.message : "Network error — please try again."}` }]);
     } finally {
       setLoading(false);
     }

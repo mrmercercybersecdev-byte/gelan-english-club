@@ -5,12 +5,17 @@ import { logError } from "@/lib/security";
 
 export type ChatMsg = { role: "user" | "assistant"; content: string };
 
-export async function aiEnabled() {
-  return Boolean(await getAiConfig());
+export async function aiEnabled(scope: "learning" | "chat" = "learning") {
+  return Boolean(await getAiConfig(scope));
 }
 
-export async function llm(system: string, messages: ChatMsg[], maxTokens = 600): Promise<string | null> {
-  const config = await getAiConfig();
+export async function llm(
+  system: string,
+  messages: ChatMsg[],
+  maxTokens = 600,
+  scope: "learning" | "chat" = "learning",
+): Promise<string | null> {
+  const config = await getAiConfig(scope);
   if (!config) return null;
   try {
     const res = await fetch(`${config.baseUrl}/chat/completions`, {

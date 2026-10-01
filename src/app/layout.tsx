@@ -12,6 +12,8 @@ import { ScrollProgress, CursorGlow } from "@/components/fx/Effects";
 import { getCurrentUser, toPublic } from "@/lib/session";
 import { siteUrl } from "@/lib/site";
 import type { Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const viewport: Viewport = { themeColor: "#147d75", width: "device-width", initialScale: 1 };
 
@@ -55,6 +57,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SupportWidget />
         <CommandPalette />
         <XpToaster />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

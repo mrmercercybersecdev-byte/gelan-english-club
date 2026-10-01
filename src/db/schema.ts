@@ -177,7 +177,8 @@ export const blogPosts = pgTable("blog_posts", {
 
 /* ================= AI provider settings ================= */
 export const aiSettings = pgTable("ai_settings", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 20 }).notNull().unique(),
   provider: varchar("provider", { length: 20 }).notNull(),
   model: varchar("model", { length: 100 }).notNull(),
   encryptedApiKey: text("encrypted_api_key").notNull(),

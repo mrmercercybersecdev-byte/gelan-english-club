@@ -81,9 +81,13 @@ export async function toggleBlogPublishAction(fd: FormData) {
 
 export async function saveAiSettingsAction(_prev: FormState, fd: FormData): Promise<FormState> {
   await guard();
+  const scope = String(fd.get("scope") || "learning");
   const provider = String(fd.get("provider") ?? "");
   const model = String(fd.get("model") ?? "").trim();
   const apiKey = String(fd.get("apiKey") ?? "").trim();
+  if (!["learning", "chat"].includes(scope)) {
+    return { ok: false, message: "Choose a valid AI scope." };
+  }
   if (!AI_PROVIDERS.includes(provider as AiProvider)) {
     return { ok: false, message: "Choose Gemini or Groq." };
   }
@@ -95,7 +99,7 @@ export async function saveAiSettingsAction(_prev: FormState, fd: FormData): Prom
   const existing = await db
     .select({ provider: aiSettings.provider, encryptedApiKey: aiSettings.encryptedApiKey })
     .from(aiSettings)
-    .where(eq(aiSettings.id, 1))
+    .where(eq(aiSettings.scope, scope))
     .limit(1);
   if (existing[0] && existing[0].provider !== provider && !apiKey) {
     return { ok: false, message: "Enter an API key when changing providers." };
@@ -112,21 +116,24 @@ export async function saveAiSettingsAction(_prev: FormState, fd: FormData): Prom
 
   await db
     .insert(aiSettings)
-    .values({ id: 1, provider, model, encryptedApiKey, updatedAt: new Date() })
+    .values({ scope, provider, model, encryptedApiKey, updatedAt: new Date() })
     .onConflictDoUpdate({
-      target: aiSettings.id,
+      target: aiSettings.scope,
       set: { provider, model, encryptedApiKey, updatedAt: new Date() },
     });
-  await recordAudit("ai.settings.update", "ai_settings", 1, { provider, model });
+  await recordAudit("ai.settings.update", "ai_settings", 1, { scope, provider, model });
   revalidatePath("/admin");
   revalidatePath("/learn");
-  return { ok: true, message: `${provider === "gemini" ? "Gemini" : "Groq"} settings saved. The API key is encrypted and never displayed again.` };
+  return { ok: true, message: `${provider === "gemini" ? "Gemini" : "Groq"} settings saved for ${scope}. The API key is encrypted and never displayed again.` };
 }
 
-export async function clearAiSettingsAction() {
+export async function clearAiSettingsAction(fd: FormData) {
   await guard();
-  await db.delete(aiSettings).where(eq(aiSettings.id, 1));
-  await recordAudit("ai.settings.clear", "ai_settings", 1);
+  const scope = String(fd.get("scope") || "learning");
+  if (["learning", "chat"].includes(scope)) {
+    await db.delete(aiSettings).where(eq(aiSettings.scope, scope));
+    await recordAudit("ai.settings.clear", "ai_settings", 1, { scope });
+  }
   revalidatePath("/admin");
   revalidatePath("/learn");
 }

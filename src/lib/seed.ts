@@ -163,7 +163,6 @@ async function seedCommunity() {
       ["marco_b", "Marco B.", "Italy", 1230, 4, "#d97706"],
       ["olena_s", "Olena S.", "Ukraine", 980, 7, "#7c3aed"],
       ["wei_chen", "Wei C.", "China", 760, 3, "#059669"],
-      ["demo", "Demo Learner", "Brazil", 120, 1, "#b8322a"],
     ] as const;
     const inserted = await db
       .insert(users)
@@ -176,7 +175,7 @@ async function seedCommunity() {
           streak,
           avatarColor,
           lastActiveDate: new Date().toISOString().slice(0, 10),
-          passwordHash: hashPassword(username === "demo" ? "demo1234" : Math.random().toString(36)),
+          passwordHash: hashPassword(Math.random().toString(36)),
         })),
       )
       .returning({ id: users.id, username: users.username });

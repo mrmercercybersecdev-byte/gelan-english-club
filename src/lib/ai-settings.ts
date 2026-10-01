@@ -8,6 +8,7 @@ import { logError } from "@/lib/security";
 
 export const AI_PROVIDERS = ["gemini", "groq"] as const;
 export type AiProvider = (typeof AI_PROVIDERS)[number];
+export type AiScope = "learning" | "chat";
 
 export type AiConfig = {
   key: string;
@@ -44,8 +45,8 @@ function decryptAiKey(payload: string) {
   return Buffer.concat([decipher.update(Buffer.from(encryptedHex, "hex")), decipher.final()]).toString("utf8");
 }
 
-export async function getAiConfig(): Promise<AiConfig | null> {
-  const [saved] = await db.select().from(aiSettings).where(eq(aiSettings.id, 1)).limit(1);
+export async function getAiConfig(scope: "learning" | "chat" | "admin" = "learning"): Promise<AiConfig | null> {
+  const [saved] = await db.select().from(aiSettings).where(eq(aiSettings.scope, scope)).limit(1);
   if (saved) {
     if (!AI_PROVIDERS.includes(saved.provider as AiProvider)) {
       throw new Error("Stored AI provider is not supported.");
@@ -59,25 +60,28 @@ export async function getAiConfig(): Promise<AiConfig | null> {
     };
   }
 
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
+  const fallbackKey = scope === "chat" ? process.env.OPENAI_API_KEY_CHAT || process.env.OPENAI_API_KEY : process.env.OPENAI_API_KEY;
+  if (!fallbackKey) return null;
   return {
     provider: "openai",
-    key,
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    baseUrl: (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
+    key: fallbackKey,
+    model: scope === "chat" ? (process.env.OPENAI_MODEL_CHAT || process.env.OPENAI_MODEL || "gpt-4o-mini") : (process.env.OPENAI_MODEL || "gpt-4o-mini"),
+    baseUrl: (scope === "chat" ? (process.env.OPENAI_BASE_URL_CHAT || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1") : (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1")).replace(/\/$/, ""),
   };
 }
 
 export async function getPublicAiSettings() {
   try {
-    const [saved] = await db.select().from(aiSettings).where(eq(aiSettings.id, 1)).limit(1);
-    if (saved) return { provider: saved.provider as AiProvider, model: saved.model, configured: true, savedKey: true };
+    const rows = await db.select().from(aiSettings).orderBy(aiSettings.scope);
+    if (rows.length) {
+      return rows.reduce((acc, saved) => {
+        acc[saved.scope as "learning" | "chat"] = { provider: saved.provider as AiProvider, model: saved.model, configured: true, savedKey: true };
+        return acc;
+      }, {} as Record<string, { provider: AiProvider; model: string; configured: boolean; savedKey: boolean }>);
+    }
     return {
-      provider: "gemini" as const,
-      model: PROVIDERS.gemini.model,
-      configured: Boolean(process.env.OPENAI_API_KEY),
-      savedKey: false,
+      learning: { provider: "gemini" as const, model: PROVIDERS.gemini.model, configured: Boolean(process.env.OPENAI_API_KEY), savedKey: false },
+      chat: { provider: "gemini" as const, model: PROVIDERS.gemini.model, configured: Boolean(process.env.OPENAI_API_KEY_CHAT || process.env.OPENAI_API_KEY), savedKey: false },
     };
   } catch (error) {
     logError("ai-settings.read", error);

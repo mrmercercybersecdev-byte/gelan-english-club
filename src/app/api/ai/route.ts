@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { aiEnabled, analyzeEssay, grammarCheck, llm, offlineTutor, SYSTEM_PROMPTS, type ChatMsg } from "@/lib/ai";
+import { aiEnabled, analyzeEssay, grammarCheck, llm, SYSTEM_PROMPTS, type ChatMsg } from "@/lib/ai";
 import { getCurrentUser } from "@/lib/session";
 import { awardXp } from "@/lib/award";
 import { limitRequest, logError, sameOrigin } from "@/lib/security";
@@ -44,15 +44,21 @@ async function handle(req: NextRequest) {
     if (essay.trim().split(/\s+/).length < 20) {
       return Response.json({ error: "Please write at least 20 words." }, { status: 400 });
     }
+    if (!(await aiEnabled("learning"))) {
+      return Response.json({ error: "AI is not configured for learning. Ask an organiser to save a provider key in Admin → AI settings." }, { status: 503 });
+    }
     const analysis = analyzeEssay(essay, Number(body.minWords) || 250);
     const feedback = await llm(
       SYSTEM_PROMPTS["ielts-writing"],
       [{ role: "user", content: `Task prompt: ${body.prompt || "(free writing)"}\n\nEssay:\n${essay}` }],
       900,
     );
+    if (!feedback) {
+      return Response.json({ error: "The configured AI provider did not respond. Check its API key, model name, account limits, and the Vercel function logs." }, { status: 502 });
+    }
     let xp = null;
     if (user) xp = await awardXp(user.id, "essay", `band ${analysis.overall}`);
-    return Response.json({ analysis, feedback, source: feedback ? "ai" : "offline", xp });
+    return Response.json({ analysis, feedback, source: "ai", xp });
   }
 
   /* ---------- Chat-based tutors ---------- */
@@ -70,8 +76,13 @@ async function handle(req: NextRequest) {
     system += " Your reply will be read aloud by text-to-speech, so avoid markdown symbols and emojis except the 💡 line; keep it under 60 words.";
   }
 
+  if (!(await aiEnabled("learning"))) {
+    return Response.json({ error: "AI is not configured for learning. Ask an organiser to save a provider key in Admin → AI settings." }, { status: 503 });
+  }
   const aiReply = await llm(system, messages);
-  const reply = aiReply ?? offlineTutor(mode, messages);
+  if (!aiReply) {
+    return Response.json({ error: "The configured AI provider did not respond. Check its API key, model name, account limits, and the Vercel function logs." }, { status: 502 });
+  }
   const { corrections } = grammarCheck(last);
 
   let xp = null;
@@ -79,5 +90,5 @@ async function handle(req: NextRequest) {
     xp = await awardXp(user.id, body.source === "voice" ? "speaking_turn" : "tutor_message", mode);
   }
 
-  return Response.json({ reply, corrections, source: aiReply ? "ai" : "offline", aiEnabled: await aiEnabled(), xp });
+  return Response.json({ reply: aiReply, corrections, source: "ai", aiEnabled: true, xp });
 }
