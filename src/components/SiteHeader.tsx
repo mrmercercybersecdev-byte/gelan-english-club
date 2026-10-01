@@ -29,6 +29,7 @@ const MORE = [
   { href: "/board", label: "Phrase Wall" },
   { href: "/join", label: "Membership" },
   { href: "/contact", label: "Contact" },
+  { href: "/contact-developer", label: "Contact developer" },
   { href: "/admin", label: "Organisers" },
 ];
 

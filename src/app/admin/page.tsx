@@ -5,6 +5,7 @@ import { auditLogs, events, members, messages, posts, rsvps, users, chatMessages
 import { levelFromXp } from "@/lib/xp";
 import { Avatar } from "@/components/SiteHeader";
 import BlogEditor from "./BlogEditor";
+import AISettingsForm from "./AISettingsForm";
 import { ChampionsTab, HistoryTab, StreamsTab, TeamTab } from "./AboutTabs";
 import { AnnouncementsTab, GroupsTab, SubmissionsTab } from "./CommunityTabs";
 import { isDefaultAdminPassword } from "@/lib/security";
@@ -19,6 +20,7 @@ import {
 import { desc, asc, eq, gt, sql } from "drizzle-orm";
 import { isAdmin, isContentManager } from "@/lib/auth";
 import { ensureSeed } from "@/lib/seed";
+import { getPublicAiSettings } from "@/lib/ai-settings";
 import { formatDate, formatTime, timeAgo } from "@/lib/format";
 import {
   deleteEventAction,
@@ -50,6 +52,7 @@ const TABS = [
   ["messages", "✉️ Messages"],
   ["posts", "💡 Phrase Wall"],
   ["logs", "🛡️ System logs"],
+  ["ai", "✨ AI settings"],
 ] as const;
 
 const STATUS_STYLE: Record<string, string> = {
@@ -162,9 +165,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "messages" && <MessagesTab />}
         {tab === "posts" && <PostsTab />}
         {tab === "logs" && <LogsTab />}
+        {tab === "ai" && fullAdmin && <AiSettingsTab />}
       </div>
     </div>
   );
+}
+
+async function AiSettingsTab() {
+  const settings = await getPublicAiSettings();
+  return <AISettingsForm settings={settings} />;
 }
 
 async function LogsTab() {

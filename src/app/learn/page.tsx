@@ -8,8 +8,8 @@ import DnaHelix from "@/components/fx/DnaHelix";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "AI Learning Lab" };
 
-export default function LearnPage() {
-  const ai = aiEnabled();
+export default async function LearnPage() {
+  const ai = await aiEnabled();
   return (
     <div>
       <section className="aurora-bg relative overflow-hidden text-white">
@@ -18,7 +18,7 @@ export default function LearnPage() {
           <div>
             <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold">
               <span className={`h-2 w-2 rounded-full ${ai ? "bg-emerald-400" : "bg-gold"}`} />
-              {ai ? "GPT-powered tutors online" : "Built-in tutor engine active"}
+              {ai ? "AI tutors online" : "Built-in tutor engine active"}
             </span>
             <h1 className="mt-5 font-display text-5xl font-bold md:text-6xl">AI Learning <span className="text-gradient">Lab</span></h1>
             <p className="mt-4 max-w-xl text-lg text-white/75">
@@ -73,9 +73,7 @@ export default function LearnPage() {
         </div>
         {!ai && (
           <p className="mt-10 rounded-2xl bg-white p-5 text-sm text-muted ring-1 ring-black/5">
-            💡 <strong className="text-ink">Tip for organisers:</strong> set <code>OPENAI_API_KEY</code> (and optionally <code>OPENAI_MODEL</code> /{" "}
-            <code>OPENAI_BASE_URL</code>) to upgrade the tutors to a full large language model. Without it, the built-in engine
-            still grades essays, corrects grammar and runs mock exams.
+            💡 <strong className="text-ink">Tip for organisers:</strong> add a Gemini or Groq API key in <Link href="/admin?tab=ai" className="font-semibold text-brand underline">Admin → AI settings</Link> to power the tutors, essay feedback, and blog assistant. The built-in engine remains available when no provider is configured.
           </p>
         )}
       </section>

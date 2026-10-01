@@ -175,6 +175,15 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/* ================= AI provider settings ================= */
+export const aiSettings = pgTable("ai_settings", {
+  id: integer("id").primaryKey(),
+  provider: varchar("provider", { length: 20 }).notNull(),
+  model: varchar("model", { length: 100 }).notNull(),
+  encryptedApiKey: text("encrypted_api_key").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /* ================= Meetings (WebRTC signaling) ================= */
 export const meetRooms = pgTable("meet_rooms", {
   id: serial("id").primaryKey(),

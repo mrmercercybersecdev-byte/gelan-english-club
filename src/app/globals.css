@@ -1,16 +1,15 @@
-@import "tailwindcss";
-
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
 
 @theme {
   --color-cream: #f7f4ef;
   --color-paper: #efe7dc;
-  --color-ink: #171a2d;
-  --color-muted: #5f667b;
-  --color-brand: #cc5b46;
-  --color-brand-dark: #a94a38;
-  --color-navy: #1d2443;
-  --color-gold: #d7a653;
+  --color-ink: #17243a;
+  --color-muted: #59677c;
+  --color-brand: #147d75;
+  --color-brand-dark: #11675f;
+  --color-navy: #1b3554;
+  --color-gold: #d5a64c;
   --font-serif: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
   --font-sans: "Manrope", "Segoe UI", sans-serif;
 }
@@ -22,8 +21,8 @@ html {
 body {
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at top, rgba(215, 166, 83, 0.18), transparent 30%),
-    linear-gradient(180deg, #faf6f1 0%, #f5f0e8 100%);
+    radial-gradient(circle at 12% 0%, rgba(20, 125, 117, 0.10), transparent 32%),
+    linear-gradient(180deg, #fbfaf6 0%, #f4f5f1 100%);
   color: var(--color-ink);
 }
 
@@ -44,7 +43,7 @@ body {
 }
 .input:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgb(184 50 42 / 0.15);
+  box-shadow: 0 0 0 3px rgb(20 125 117 / 0.15);
 }
 
 .label {
@@ -111,7 +110,7 @@ body {
 @utility animate-pop { animation: pop .4s ease-out; }
 
 .text-gradient {
-  background: linear-gradient(90deg, #f87171, #fbbf24, #f472b6, #f87171);
+  background: linear-gradient(90deg, #5eead4, #fbbf24, #a5f3fc, #5eead4);
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -119,10 +118,10 @@ body {
   animation: aurora 6s ease infinite;
 }
 .aurora-bg {
-  background: radial-gradient(60% 60% at 20% 20%, rgba(184,50,42,.55), transparent 60%),
-    radial-gradient(50% 50% at 80% 30%, rgba(217,164,65,.35), transparent 60%),
-    radial-gradient(60% 60% at 50% 100%, rgba(124,58,237,.35), transparent 60%),
-    #0f1424;
+  background: radial-gradient(60% 60% at 20% 20%, rgba(20,125,117,.55), transparent 60%),
+    radial-gradient(50% 50% at 80% 30%, rgba(213,166,76,.32), transparent 60%),
+    radial-gradient(60% 60% at 50% 100%, rgba(56,189,248,.24), transparent 60%),
+    #101b2c;
 }
 .grid-bg {
   background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const staticPaths = ["", "/events", "/learn", "/speak", "/meet", "/chat", "/leaderboard", "/blog", "/about", "/announcements", "/groups", "/games", "/board", "/join", "/contact", "/verify"];
+  const staticPaths = ["", "/events", "/learn", "/speak", "/meet", "/chat", "/leaderboard", "/blog", "/about", "/announcements", "/groups", "/games", "/board", "/join", "/contact", "/contact-developer", "/verify"];
   const entries: MetadataRoute.Sitemap = staticPaths.map((p) => ({ url: `${base}${p}`, changeFrequency: "weekly", priority: p === "" ? 1 : 0.7 }));
   TRACKS.forEach((t) => entries.push({ url: `${base}/learn/${t.id}`, changeFrequency: "monthly", priority: 0.6 }));
   GAMES.forEach((g) => entries.push({ url: `${base}/games/${g.id}`, changeFrequency: "monthly", priority: 0.5 }));

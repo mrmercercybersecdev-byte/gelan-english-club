@@ -13,7 +13,7 @@ import { getCurrentUser, toPublic } from "@/lib/session";
 import { siteUrl } from "@/lib/site";
 import type { Viewport } from "next";
 
-export const viewport: Viewport = { themeColor: "#b8322a", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#147d75", width: "device-width", initialScale: 1 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),

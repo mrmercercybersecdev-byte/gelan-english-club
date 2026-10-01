@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { blogPosts, channels, users, chatMessages } from "@/db/schema";
+import { blogPosts, channels, users, chatMessages, aiSettings } from "@/db/schema";
 import { isAdmin, isContentManager } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { isSafeCoverImage } from "@/lib/image-url";
+import { AI_PROVIDERS, encryptAiKey, type AiProvider } from "@/lib/ai-settings";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -76,6 +77,58 @@ export async function toggleBlogPublishAction(fd: FormData) {
   if (id) await recordAudit("blog.toggle_publish", "blog_post", id);
   revalidatePath("/blog");
   revalidatePath("/admin");
+}
+
+export async function saveAiSettingsAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await guard();
+  const provider = String(fd.get("provider") ?? "");
+  const model = String(fd.get("model") ?? "").trim();
+  const apiKey = String(fd.get("apiKey") ?? "").trim();
+  if (!AI_PROVIDERS.includes(provider as AiProvider)) {
+    return { ok: false, message: "Choose Gemini or Groq." };
+  }
+  if (!model || model.length > 100) return { ok: false, message: "Enter a model name up to 100 characters." };
+  if (apiKey.length > 500 || (apiKey && apiKey.length < 12)) {
+    return { ok: false, message: "Enter a valid provider API key." };
+  }
+
+  const existing = await db
+    .select({ provider: aiSettings.provider, encryptedApiKey: aiSettings.encryptedApiKey })
+    .from(aiSettings)
+    .where(eq(aiSettings.id, 1))
+    .limit(1);
+  if (existing[0] && existing[0].provider !== provider && !apiKey) {
+    return { ok: false, message: "Enter an API key when changing providers." };
+  }
+  let encryptedApiKey = existing[0]?.encryptedApiKey;
+  if (apiKey) {
+    try {
+      encryptedApiKey = encryptAiKey(apiKey);
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : "Could not securely save the API key." };
+    }
+  }
+  if (!encryptedApiKey) return { ok: false, message: "Enter an API key to enable the selected AI provider." };
+
+  await db
+    .insert(aiSettings)
+    .values({ id: 1, provider, model, encryptedApiKey, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: aiSettings.id,
+      set: { provider, model, encryptedApiKey, updatedAt: new Date() },
+    });
+  await recordAudit("ai.settings.update", "ai_settings", 1, { provider, model });
+  revalidatePath("/admin");
+  revalidatePath("/learn");
+  return { ok: true, message: `${provider === "gemini" ? "Gemini" : "Groq"} settings saved. The API key is encrypted and never displayed again.` };
+}
+
+export async function clearAiSettingsAction() {
+  await guard();
+  await db.delete(aiSettings).where(eq(aiSettings.id, 1));
+  await recordAudit("ai.settings.clear", "ai_settings", 1);
+  revalidatePath("/admin");
+  revalidatePath("/learn");
 }
 
 export async function userAdminAction(fd: FormData) {

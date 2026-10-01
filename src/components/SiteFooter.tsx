@@ -35,6 +35,7 @@ export default function SiteFooter() {
           <ul className="space-y-2 text-sm">
             <li>Gelan English Club</li>
             <li><Link className="hover:text-white" href="/contact">Send a message →</Link></li>
+            <li><Link className="hover:text-white" href="/contact-developer">Contact the developer →</Link></li>
           </ul>
         </div>
       </div>

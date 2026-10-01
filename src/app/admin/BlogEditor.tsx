@@ -13,9 +13,40 @@ const COVERS = ["/images/hero.jpg", "/images/bookclub.jpg", "/images/debate.jpg"
 
 export default function BlogEditor({ post }: { post?: Post }) {
   const [state, action] = useActionState<FormState, FormData>(saveBlogPostAction, null);
+  const [title, setTitle] = useState(post?.title ?? "");
   const [content, setContent] = useState(post?.content ?? "## Heading\n\nWrite your article in **markdown**.\n\n- Bullet one\n- Bullet two\n\n> A lovely quote");
   const [cover, setCover] = useState(post?.coverImage ?? COVERS[0]);
   const [preview, setPreview] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState("");
+
+  async function generateDraft() {
+    if (!topic.trim() || drafting) return;
+    setDrafting(true);
+    setDraftError("");
+    try {
+      const response = await fetch("/api/admin/blog-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic }),
+      });
+      const result = (await response.json()) as { draft?: string; error?: string };
+      if (!response.ok || !result.draft) throw new Error(result.error || "Could not generate a draft.");
+      const titleHeading = result.draft.match(/^#\s+(.+)$/m);
+      if (titleHeading) {
+        setTitle(titleHeading[1].trim());
+        setContent(result.draft.replace(titleHeading[0], "").trim());
+      } else {
+        setContent(result.draft);
+      }
+      setPreview(false);
+    } catch (error) {
+      setDraftError(error instanceof Error ? error.message : "Could not generate a draft.");
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   return (
     <form action={action} className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-black/5">
@@ -24,12 +55,27 @@ export default function BlogEditor({ post }: { post?: Post }) {
         {post && <Link href="/admin?tab=blog" className="text-sm text-muted hover:text-ink">+ New post instead</Link>}
       </div>
       {post && <input type="hidden" name="id" value={post.id} />}
-      <input name="title" defaultValue={post?.title} required maxLength={200} placeholder="Post title" className="input font-display !text-xl font-bold" />
+      <input name="title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={200} placeholder="Post title" className="input font-display !text-xl font-bold" />
       <input name="excerpt" defaultValue={post?.excerpt} maxLength={400} placeholder="Short excerpt (optional — auto-generated if empty)" className="input" />
       <div className="grid gap-3 sm:grid-cols-2">
         <input name="tags" defaultValue={post?.tags} placeholder="tags, comma, separated" className="input" />
         <input name="author" defaultValue={post?.author ?? "Gelan English Club"} placeholder="Author" className="input" />
       </div>
+      <section className="rounded-2xl bg-gradient-to-br from-brand/10 to-gold/15 p-4 ring-1 ring-brand/15">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-semibold">✨ Blog-writing assistant</p>
+            <p className="text-xs text-muted">Generate an editable Markdown draft; review it before publishing.</p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input value={topic} onChange={(event) => setTopic(event.target.value)} maxLength={1000} placeholder="Daily topic, audience, or notes…" className="input" />
+          <button type="button" onClick={generateDraft} disabled={drafting || topic.trim().length < 8} className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-50">
+            {drafting ? "Writing…" : "Generate draft"}
+          </button>
+        </div>
+        {draftError && <p role="alert" className="mt-2 text-sm text-rose-700">{draftError}</p>}
+      </section>
       <div>
         <p className="label">Cover image</p>
         <input type="hidden" name="coverImage" value={cover} />

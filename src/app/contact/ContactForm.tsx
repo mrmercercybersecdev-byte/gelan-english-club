@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { contactAction, type FormState } from "@/app/actions";
 import { FormNotice, SubmitButton } from "@/components/FormBits";
 
-export default function ContactForm() {
+export default function ContactForm({ defaultSubject = "General enquiry" }: { defaultSubject?: string }) {
   const [state, action] = useActionState<FormState, FormData>(contactAction, null);
 
   if (state?.ok) {
@@ -32,8 +32,10 @@ export default function ContactForm() {
       </div>
       <div>
         <label className="label" htmlFor="subject">Subject</label>
-        <select className="input" id="subject" name="subject" defaultValue="General enquiry">
+        <select className="input" id="subject" name="subject" defaultValue={defaultSubject}>
           <option>General enquiry</option>
+          <option>Developer contact</option>
+          <option>Technical support / website feedback</option>
           <option>Events</option>
           <option>Volunteering</option>
           <option>Partnership / venue</option>

@@ -79,5 +79,5 @@ async function handle(req: NextRequest) {
     xp = await awardXp(user.id, body.source === "voice" ? "speaking_turn" : "tutor_message", mode);
   }
 
-  return Response.json({ reply, corrections, source: aiReply ? "ai" : "offline", aiEnabled: aiEnabled(), xp });
+  return Response.json({ reply, corrections, source: aiReply ? "ai" : "offline", aiEnabled: await aiEnabled(), xp });
 }

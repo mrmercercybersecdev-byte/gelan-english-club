@@ -1,32 +1,37 @@
-/* AI layer: uses an OpenAI-compatible API when OPENAI_API_KEY is set,
-   otherwise falls back to a built-in rule-based tutor engine. */
+/* AI layer: uses the configured OpenAI-compatible provider, then the built-in tutor. */
+
+import { getAiConfig } from "@/lib/ai-settings";
+import { logError } from "@/lib/security";
 
 export type ChatMsg = { role: "user" | "assistant"; content: string };
 
-export function aiEnabled() {
-  return Boolean(process.env.OPENAI_API_KEY);
+export async function aiEnabled() {
+  return Boolean(await getAiConfig());
 }
 
 export async function llm(system: string, messages: ChatMsg[], maxTokens = 600): Promise<string | null> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
-  const base = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+  const config = await getAiConfig();
+  if (!config) return null;
   try {
-    const res = await fetch(`${base}/chat/completions`, {
+    const res = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.key}` },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        model: config.model,
         max_tokens: maxTokens,
         temperature: 0.7,
         messages: [{ role: "system", content: system }, ...messages.slice(-12)],
       }),
       signal: AbortSignal.timeout(30_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      logError("ai.provider", new Error(`Provider returned HTTP ${res.status}.`), { provider: config.provider });
+      return null;
+    }
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     return data.choices?.[0]?.message?.content?.trim() || null;
-  } catch {
+  } catch (error) {
+    logError("ai.provider", error, { provider: config.provider });
     return null;
   }
 }

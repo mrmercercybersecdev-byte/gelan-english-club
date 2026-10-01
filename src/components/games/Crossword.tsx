@@ -68,11 +68,11 @@ export default function Crossword() {
   const isCell = (r: number, c: number) => !!cw?.grid[r]?.[c];
 
   const checkComplete = useCallback(
-    (f: string[][]) => {
+    (f: string[][], addedPenalty = 0) => {
       if (!cw) return;
       for (let r = 0; r < cw.rows; r++) for (let c = 0; c < cw.cols; c++) if (cw.grid[r][c] && f[r][c] !== cw.grid[r][c]) return;
       const ms = Date.now() - start;
-      const score = Math.max(100, Math.round(2000 - ms / 1000 * 2 - penalty));
+      const score = Math.max(100, Math.round(2000 - ms / 1000 * 2 - penalty - addedPenalty));
       setDone({ score, ms });
       setModal(true);
       submitScore("crossword", score, ms, true, `seed:${seed}`);
@@ -169,9 +169,10 @@ export default function Crossword() {
     f[sel.r][sel.c] = cw.grid[sel.r][sel.c] ?? "";
     setFill(f);
     setRevealed((s) => new Set(s).add(`${sel.r},${sel.c}`));
+    setWrong((s) => { const n = new Set(s); n.delete(`${sel.r},${sel.c}`); return n; });
     setPenalty((p) => p + 100);
     advance();
-    checkComplete(f);
+    checkComplete(f, 100);
   };
   const revealWord = () => {
     if (!cw || !activeWord || done) return;
@@ -180,8 +181,13 @@ export default function Crossword() {
     cellsOf(activeWord).forEach(([r, c]) => { f[r][c] = cw.grid[r][c] ?? ""; rv.add(`${r},${c}`); });
     setFill(f);
     setRevealed(rv);
+    setWrong((s) => {
+      const n = new Set(s);
+      cellsOf(activeWord).forEach(([r, c]) => n.delete(`${r},${c}`));
+      return n;
+    });
     setPenalty((p) => p + 250);
-    checkComplete(f);
+    checkComplete(f, 250);
   };
 
   const filled = cw ? fill.flat().filter(Boolean).length : 0;
@@ -193,7 +199,7 @@ export default function Crossword() {
     <GameShell
       title="Crossword"
       icon="book"
-      gradient="from-indigo-500 via-violet-600 to-fuchsia-600"
+      gradient="from-brand via-emerald-700 to-cyan-800"
       stats={<><Stat label="Time" value={fmtTime(Math.max(0, elapsed))} /><Stat label="Filled" value={`${Math.round((filled / total) * 100)}%`} /><Stat label="Penalty" value={penalty} /></>}
     >
       {done && modal && <Confetti />}
@@ -209,7 +215,7 @@ export default function Crossword() {
               </div>
             )}
             <div className="-mx-2 overflow-x-auto px-2 pb-2 sm:mx-0 sm:px-0">
-              <div ref={boardRef} role="group" aria-label="Crossword grid. Use the arrow keys to move, type letters to fill cells, and press Space or Tab for the next clue." tabIndex={0} onKeyDown={onKey} className="inline-block rounded-2xl bg-ink p-2 shadow-2xl outline-none ring-offset-4 focus:ring-4 focus:ring-violet-400/50">
+              <div ref={boardRef} role="group" aria-label="Crossword grid. Use the arrow keys to move, type letters to fill cells, and press Space or Tab for the next clue." tabIndex={0} onKeyDown={onKey} className="inline-block rounded-2xl bg-ink p-2 shadow-2xl outline-none ring-offset-4 focus:ring-4 focus:ring-teal-400/50">
                 <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${cw.cols}, ${cellSize}px)` }}>
                   {cw.grid.map((row, r) =>
                     row.map((ch, c) => {
@@ -227,11 +233,11 @@ export default function Crossword() {
                           tabIndex={-1}
                           style={{ width: cellSize, height: cellSize }}
                           className={`relative grid place-items-center rounded-[4px] font-display font-bold uppercase transition motion-reduce:transition-none ${
-                            isSel ? "scale-105 bg-gold text-ink shadow-lg" : inWord ? "bg-violet-200 text-ink" : "bg-white text-ink hover:bg-violet-50"
+                            isSel ? "scale-105 bg-gold text-ink shadow-lg" : inWord ? "bg-teal-100 text-ink" : "bg-white text-ink hover:bg-teal-50"
                           } ${wrong.has(k) ? "!bg-rose-300" : ""} ${done ? "animate-pop motion-reduce:animate-none" : ""}`}
                         >
                           {numbers.has(k) && <span className="absolute left-0.5 top-0 text-[9px] font-bold leading-none text-ink/60">{numbers.get(k)}</span>}
-                          <span className={`${revealed.has(k) ? "text-violet-700" : ""}`} style={{ fontSize: cellSize * 0.5 }}>{fill[r]?.[c]}</span>
+                          <span className={`${revealed.has(k) ? "text-teal-700" : ""}`} style={{ fontSize: cellSize * 0.5 }}>{fill[r]?.[c]}</span>
                         </button>
                       );
                     }),
@@ -268,7 +274,7 @@ export default function Crossword() {
                       <li key={`${d}${w.num}`}>
                         <button
                           onClick={() => { setSel({ r: w.row, c: w.col, dir: w.dir }); boardRef.current?.focus(); }}
-                          className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${on ? "bg-violet-600 text-white shadow" : "hover:bg-white"} ${solved && !on ? "text-muted line-through" : ""}`}
+                          className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${on ? "bg-brand text-white shadow" : "hover:bg-white"} ${solved && !on ? "text-muted line-through" : ""}`}
                         >
                           <strong className="mr-1.5">{w.num}.</strong>{w.clue} <span className="opacity-60">({w.word.length})</span>
                         </button>
@@ -288,7 +294,7 @@ export default function Crossword() {
             <Icon name="trophy" size={48} className="mx-auto text-gold" />
             <h2 className="mt-3 font-display text-3xl font-bold">Puzzle solved!</h2>
             <p className="mt-1 text-muted">in {fmtTime(done.ms)}</p>
-            <p className="animate-pop mt-4 font-display text-6xl font-bold text-violet-600">{done.score}</p>
+            <p className="animate-pop mt-4 font-display text-6xl font-bold text-brand">{done.score}</p>
             <p className="text-xs uppercase tracking-widest text-muted">points</p>
             <div className="mt-6 flex justify-center gap-2">
               <button onClick={() => newGame()} className="btn-primary">New puzzle</button>
