@@ -17,7 +17,7 @@ import {
   toggleBlogPublishAction,
   userAdminAction,
 } from "./admin-actions";
-import { desc, asc, eq, gt, sql } from "drizzle-orm";
+import { desc, asc, eq, gt, ilike, or, sql } from "drizzle-orm";
 import { isAdmin, isContentManager } from "@/lib/auth";
 import { ensureSeed } from "@/lib/seed";
 import { getPublicAiSettings } from "@/lib/ai-settings";
@@ -33,6 +33,7 @@ import {
 import LoginForm from "./LoginForm";
 import EventForm from "./EventForm";
 import PageContentTab from "./PageContentTab";
+import AnalyticsTab from "./AnalyticsTab";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Organiser dashboard", robots: { index: false } };
@@ -55,6 +56,7 @@ const TABS = [
   ["messages", "✉️ Messages"],
   ["posts", "💡 Phrase Wall"],
   ["logs", "🛡️ System logs"],
+  ["analytics", "📊 Analytics"],
   ["ai", "✨ AI settings"],
 ] as const;
 
@@ -64,7 +66,7 @@ const STATUS_STYLE: Record<string, string> = {
   declined: "bg-gray-200 text-gray-700",
 };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; edit?: string; status?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; edit?: string; status?: string; logq?: string; logPage?: string }> }) {
   const fullAdmin = await isAdmin();
   const contentManager = fullAdmin || await isContentManager();
   if (!contentManager) {
@@ -80,7 +82,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   }
 
   await ensureSeed();
-  const { tab: rawTab, edit, status } = await searchParams;
+  const { tab: rawTab, edit, status, logq = "", logPage = "1" } = await searchParams;
   const contentTabs = new Set(["announcements", "blog", "pages"]);
   const visibleTabs = fullAdmin ? TABS : TABS.filter(([key]) => contentTabs.has(key));
   const tab = visibleTabs.some(([k]) => k === rawTab) ? rawTab! : fullAdmin ? "submissions" : "blog";
@@ -168,7 +170,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "members" && <MembersTab />}
         {tab === "messages" && <MessagesTab />}
         {tab === "posts" && <PostsTab />}
-        {tab === "logs" && <LogsTab />}
+        {tab === "logs" && <LogsTab query={logq} page={logPage} />}
+        {tab === "analytics" && fullAdmin && <AnalyticsTab />}
         {tab === "ai" && fullAdmin && <AiSettingsTab />}
       </div>
     </div>
@@ -180,17 +183,29 @@ async function AiSettingsTab() {
   return <AISettingsForm settings={settings} />;
 }
 
-async function LogsTab() {
-  const logs = await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(200);
+async function LogsTab({ query, page }: { query: string; page: string }) {
+  const q = query.trim().slice(0, 120);
+  const pageNumber = Math.max(1, Math.min(10_000, Number.parseInt(page, 10) || 1));
+  const where = q ? or(ilike(auditLogs.action, `%${q}%`), ilike(auditLogs.actorRole, `%${q}%`), ilike(auditLogs.targetType, `%${q}%`), ilike(auditLogs.targetId, `%${q}%`), ilike(auditLogs.metadata, `%${q}%`)) : undefined;
+  const [[{ total }], logs] = await Promise.all([
+    db.select({ total: sql<number>`count(*)::int` }).from(auditLogs).where(where),
+    db.select().from(auditLogs).where(where).orderBy(desc(auditLogs.createdAt)).limit(100).offset((pageNumber - 1) * 100),
+  ]);
+  const pages = Math.max(1, Math.ceil(total / 100));
   return (
-    <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-black/5">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-2xl font-bold">System activity</h2><p className="mt-1 text-sm text-muted">Search organiser actions and inspect their full recorded details.</p></div><span className="rounded-full bg-paper px-3 py-1 text-xs font-semibold">{total.toLocaleString()} entries</span></div>
+      <form action="/admin" method="get" className="flex flex-col gap-2 rounded-2xl bg-white p-3 ring-1 ring-black/5 sm:flex-row"><input type="hidden" name="tab" value="logs" /><input type="search" name="logq" maxLength={120} defaultValue={q} aria-label="Search system activity" placeholder="Search action, actor, target or details" className="min-h-11 min-w-0 flex-1 rounded-xl border border-black/10 px-3" /><button className="btn-primary min-h-11 justify-center">Search logs</button>{q && <Link href="/admin?tab=logs" className="inline-flex min-h-11 items-center justify-center px-3 text-sm font-semibold">Clear</Link>}</form>
+      <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-black/5">
       <table className="w-full text-left text-sm">
-        <thead className="bg-paper text-xs uppercase tracking-wider text-muted"><tr><th className="p-3">Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+        <thead className="bg-paper text-xs uppercase tracking-wider text-muted"><tr><th className="p-3">Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Recorded details</th></tr></thead>
         <tbody className="divide-y divide-black/5">
-          {logs.map((log) => <tr key={log.id}><td className="whitespace-nowrap p-3 text-xs text-muted">{timeAgo(log.createdAt)}</td><td>{log.actorRole}</td><td className="font-semibold">{log.action}</td><td>{log.targetType ?? "—"}{log.targetId ? ` #${log.targetId}` : ""}</td><td className="max-w-xs truncate text-xs text-muted">{log.metadata ?? "—"}</td></tr>)}
+          {logs.map((log) => <tr key={log.id} className="align-top"><td className="whitespace-nowrap p-3 text-xs text-muted" title={log.createdAt.toLocaleString("en-KE", { timeZone: "Africa/Nairobi" })}>{timeAgo(log.createdAt)}</td><td className="whitespace-nowrap">{log.actorRole}{log.actorId ? <span className="block text-xs text-muted">User #{log.actorId}</span> : null}</td><td className="font-semibold">{log.action}</td><td className="whitespace-nowrap">{log.targetType ?? "—"}{log.targetId ? ` #${log.targetId}` : ""}</td><td className="max-w-md"><details><summary className="cursor-pointer text-xs text-brand">View details</summary><pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-paper p-2 text-[11px]">{log.metadata || "No extra details"}</pre></details></td></tr>)}
         </tbody>
       </table>
-      {!logs.length && <p className="p-5 text-muted">No audit entries yet.</p>}
+      {!logs.length && <p className="p-5 text-muted">{q ? "No matching activity." : "No activity entries yet."}</p>}
+      </div>
+      <div className="flex items-center justify-between text-sm"><span className="text-muted">Page {pageNumber} of {pages}</span><div className="flex gap-2">{pageNumber > 1 && <Link href={`/admin?tab=logs&logq=${encodeURIComponent(q)}&logPage=${pageNumber - 1}`} className="rounded-full bg-white px-4 py-2 font-semibold ring-1 ring-black/10">Previous</Link>}{pageNumber < pages && <Link href={`/admin?tab=logs&logq=${encodeURIComponent(q)}&logPage=${pageNumber + 1}`} className="rounded-full bg-white px-4 py-2 font-semibold ring-1 ring-black/10">Next</Link>}</div></div>
     </div>
   );
 }

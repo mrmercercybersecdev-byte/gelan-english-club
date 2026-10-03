@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { aiSettings } from "@/db/schema";
 import { logError } from "@/lib/security";
 
-export const AI_PROVIDERS = ["gemini", "groq"] as const;
+export const AI_PROVIDERS = ["gemini", "groq", "ollama"] as const;
 export type AiProvider = (typeof AI_PROVIDERS)[number];
 export type AiScope = "learning" | "chat";
 
@@ -20,6 +20,7 @@ export type AiConfig = {
 const PROVIDERS: Record<AiProvider, { baseUrl: string; model: string }> = {
   gemini: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash" },
   groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
+  ollama: { baseUrl: "https://ollama.com/v1", model: "gemma4:31b-cloud" },
 };
 
 function encryptionKey() {

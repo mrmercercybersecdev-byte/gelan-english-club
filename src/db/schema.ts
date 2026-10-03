@@ -223,6 +223,32 @@ export const siteContent = pgTable(
   (t) => [index("site_content_page_pub_idx").on(t.pagePath, t.published)],
 );
 
+/* ================= Consent-based, coarse site analytics ================= */
+export const visitorConsents = pgTable("visitor_consents", {
+  visitorHash: varchar("visitor_hash", { length: 64 }).primaryKey(),
+  analytics: boolean("analytics").notNull().default(false),
+  marketing: boolean("marketing").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+export const siteAnalyticsEvents = pgTable(
+  "site_analytics_events",
+  {
+    id: serial("id").primaryKey(),
+    visitorHash: varchar("visitor_hash", { length: 64 }).notNull().references(() => visitorConsents.visitorHash, { onDelete: "cascade" }),
+    purpose: varchar("purpose", { length: 12 }).notNull(), // analytics | marketing
+    kind: varchar("kind", { length: 12 }).notNull(), // page_view | web_vital
+    pagePath: varchar("page_path", { length: 300 }).notNull(),
+    countryCode: varchar("country_code", { length: 2 }),
+    deviceClass: varchar("device_class", { length: 12 }).notNull(),
+    metricName: varchar("metric_name", { length: 8 }),
+    metricValueMilli: integer("metric_value_milli"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("site_analytics_created_idx").on(t.createdAt), index("site_analytics_country_idx").on(t.countryCode, t.createdAt), index("site_analytics_device_idx").on(t.deviceClass, t.createdAt)],
+);
+
 /* ================= AI provider settings ================= */
 export const aiSettings = pgTable("ai_settings", {
   id: serial("id").primaryKey(),

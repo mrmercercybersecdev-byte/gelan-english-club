@@ -29,6 +29,8 @@ export function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-site-pathname", pathname);
+  const countryCode = request.headers.get("x-vercel-ip-country")?.toUpperCase() ?? "XX";
+  requestHeaders.set("x-app-country", /^[A-Z]{2}$/.test(countryCode) ? countryCode : "XX");
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 

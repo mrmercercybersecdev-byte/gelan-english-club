@@ -89,9 +89,9 @@ export async function saveAiSettingsAction(_prev: FormState, fd: FormData): Prom
     return { ok: false, message: "Choose a valid AI scope." };
   }
   if (!AI_PROVIDERS.includes(provider as AiProvider)) {
-    return { ok: false, message: "Choose Gemini or Groq." };
+    return { ok: false, message: "Choose Gemini, Groq, or Ollama Cloud." };
   }
-  if (!model || model.length > 100) return { ok: false, message: "Enter a model name up to 100 characters." };
+  if (!model || model.length > 100 || !/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/.test(model)) return { ok: false, message: "Enter a valid model ID (letters, numbers, . _ : / and -)." };
   if (apiKey.length > 500 || (apiKey && apiKey.length < 12)) {
     return { ok: false, message: "Enter a valid provider API key." };
   }
@@ -124,7 +124,8 @@ export async function saveAiSettingsAction(_prev: FormState, fd: FormData): Prom
   await recordAudit("ai.settings.update", "ai_settings", 1, { scope, provider, model });
   revalidatePath("/admin");
   revalidatePath("/learn");
-  return { ok: true, message: `${provider === "gemini" ? "Gemini" : "Groq"} settings saved for ${scope}. The API key is encrypted and never displayed again.` };
+  const providerName = provider === "gemini" ? "Gemini" : provider === "groq" ? "Groq" : "Ollama Cloud";
+  return { ok: true, message: `${providerName} settings saved for ${scope}. The API key is encrypted and never displayed again.` };
 }
 
 export async function clearAiSettingsAction(fd: FormData) {
