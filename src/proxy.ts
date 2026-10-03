@@ -10,21 +10,26 @@ export function proxy(request: NextRequest) {
   const configuredHost = normalizedHostname(process.env.ADMIN_HOST);
   const requestHost = request.nextUrl.hostname.toLowerCase();
   const pathname = request.nextUrl.pathname;
+  const isAdminDeployment = process.env.ADMIN_ONLY_DEPLOYMENT === "true";
+  const isConfiguredAdminHost = Boolean(configuredHost && requestHost === configuredHost);
 
   if (isAdminPath(pathname)) {
-    if (!configuredHost) {
-      return new Response("Organiser access is not configured.", { status: 503 });
-    }
-    if (requestHost !== configuredHost) return new Response(null, { status: 404 });
+    if (!isConfiguredAdminHost) return new Response(null, { status: 404 });
   }
 
-  if (configuredHost && requestHost === configuredHost && pathname === "/") {
+  if (isConfiguredAdminHost && pathname === "/") {
     return NextResponse.rewrite(new URL("/admin", request.url));
+  }
+
+  if (isAdminDeployment && isConfiguredAdminHost) {
+    const allowedPath = isAdminPath(pathname) || pathname.startsWith("/_next/") ||
+      pathname.startsWith("/images/") || pathname.startsWith("/api/files/") || pathname.startsWith("/api/media/");
+    if (!allowedPath) return new Response(null, { status: 404 });
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/:path*"],
 };

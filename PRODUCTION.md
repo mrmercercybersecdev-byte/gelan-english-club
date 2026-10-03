@@ -8,7 +8,8 @@ Copy `.env.example` and set at minimum:
 | `DATABASE_URL` | PostgreSQL connection string. Required for build, runtime and Drizzle schema updates. |
 | `DATABASE_URL_UNPOOLED` *(optional)* | Direct PostgreSQL URL for Drizzle schema updates when `DATABASE_URL` is pooled. |
 | `ADMIN_PASSWORD` | Required organiser dashboard password. Use a unique, long random value; password login is disabled when unset. |
-| `ADMIN_HOST` | Dedicated organiser hostname, such as `organiser.example.com`. `/admin` and organiser APIs are disabled unless this is set and accessed through that host. |
+| `ADMIN_HOST` | Dedicated organiser project hostname, such as `gelan-club-admin.vercel.app`. `/admin` and organiser APIs are disabled unless this is set and accessed through that host. |
+| `ADMIN_ONLY_DEPLOYMENT` | Set `true` only in the separate admin Vercel project to hide all unrelated site routes there. |
 | `SITE_URL` | Canonical URL for sitemap, robots.txt and social cards |
 | `SEED_DEMO_DATA=false` | Skip demo accounts, chat messages, submissions, events, posts, groups, profiles and livestreams on first boot. Empty starter chat channels are still created. |
 | `FRAME_ANCESTORS` *(optional)* | Who may embed the site in an iframe. Defaults to `'self'`; only add trusted origins if embedding is required. |
@@ -34,7 +35,7 @@ Health check: `GET /api/health` → `200 {"ok":true,...}` or `503` when the DB i
 ## 4. Vercel deployment
 1. Push the project to GitHub, import the repository in Vercel, and keep the detected Next.js framework settings. Vercel runs `npm ci` and `npm run build`; it manages the production runtime, so do not set `npm run start` as a deployment command.
 2. Connect a managed PostgreSQL provider such as Neon. Set `DATABASE_URL` to its pooled URL and, if provided, `DATABASE_URL_UNPOOLED` to its direct URL.
-3. Add `ADMIN_PASSWORD`, `ADMIN_HOST`, `SITE_URL`, `SEED_DEMO_DATA=false`, `FRAME_ANCESTORS='self'` and `DB_POOL_MAX=1` in Vercel Project Settings → Environment Variables. Point the `ADMIN_HOST` custom domain at this Vercel project and set it to its hostname only (for example, `organiser.example.com`). Gemini or Groq API keys can be saved in Admin → AI settings; they are encrypted using `ADMIN_PASSWORD`. Changing that password means you must save the provider key again. `OPENAI_API_KEY` remains an optional fallback. Set database variables for every environment you build (Production and Preview); use a separate database for Preview.
+3. In the existing public Vercel project, leave `ADMIN_HOST` unset so organiser routes are unavailable there. Create a second Vercel project from the same repository (for example, `gelan-club-admin`) and use its stable Production domain, such as `gelan-club-admin.vercel.app`. In that project set `ADMIN_HOST=gelan-club-admin.vercel.app`, `ADMIN_ONLY_DEPLOYMENT=true`, a unique long `ADMIN_PASSWORD`, the same production `DATABASE_URL`, and `SITE_URL` pointing to the public website. Set any other environment variables required by the build in both projects. The admin project serves only `/admin`, its admin APIs, and required static/file routes. Give the admin URL and password only to trusted organisers. Changing the admin password invalidates existing signed cookies; saved AI provider keys encrypted with the old password must be saved again. Set database variables for every environment you build; use a separate database for Preview.
 4. Apply the schema once before the first production deployment, and again when the schema changes. Back up the database first. Link the project with the Vercel CLI, pull Production variables into the ignored local `.env`, then run `npx drizzle-kit push`. The Drizzle config prefers `DATABASE_URL_UNPOOLED` for this step. Never commit `.env`.
 5. Deploy. Set `SITE_URL` to the final HTTPS domain assigned by Vercel (or your custom domain), then redeploy so sitemap and social metadata use the canonical URL.
 
@@ -42,7 +43,7 @@ For Google sign-in, create a Google OAuth Web application client. Add `https://Y
 
 ### Organiser sign-in
 
-After the custom domain is connected and the deployment is live, open `https://<ADMIN_HOST>/` and sign in with the organiser password. The public hostname returns 404 for `/admin` and organiser APIs. The signed, httpOnly organiser cookie expires after eight hours; sign-in does not write organiser authentication sessions to the database. The organiser dashboard still uses the database for its content. The hostname keeps the dashboard separate; the password remains the access control.
+After the second project is deployed, open `https://<ADMIN_HOST>/` and sign in with that project's organiser password. The public project returns 404 for `/admin` and organiser APIs. The signed, httpOnly organiser cookie expires after eight hours; sign-in does not write organiser authentication sessions to the database. The organiser dashboard still uses the production database for its content. The separate hostname/project keeps the dashboard apart; the password remains the access control.
 
 
 Vercel functions are serverless and may run in separate instances. This app currently keeps rate-limit counters, chat presence and live-room presence in process memory; these features are not shared reliably between instances. Move them to shared storage such as Redis before relying on global rate limits or consistent presence/live-room state.

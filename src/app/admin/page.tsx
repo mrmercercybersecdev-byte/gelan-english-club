@@ -22,6 +22,7 @@ import { isAdmin, isContentManager } from "@/lib/auth";
 import { ensureSeed } from "@/lib/seed";
 import { getPublicAiSettings } from "@/lib/ai-settings";
 import { formatDate, formatTime, timeAgo } from "@/lib/format";
+import { siteUrl } from "@/lib/site";
 import {
   deleteEventAction,
   deleteMessageAction,
@@ -244,9 +245,9 @@ async function EventsTab() {
                   <p className="text-sm text-muted">No RSVPs yet.</p>
                 )}
                 <div className="mt-4 flex gap-3">
-                  <Link href={`/events/${e.id}`} className="text-sm font-semibold text-brand hover:underline">
+                  <a href={`${siteUrl()}/events/${e.id}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-brand hover:underline">
                     View public page
-                  </Link>
+                  </a>
                   <form action={deleteEventAction}>
                     <input type="hidden" name="id" value={e.id} />
                     <button className="text-sm font-semibold text-gray-500 hover:text-rose-700">Delete event</button>
@@ -387,7 +388,7 @@ async function BlogTab({ editId }: { editId: number }) {
             </div>
             <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold">
               <Link href={`/admin?tab=blog&edit=${p.id}`} className="text-brand hover:underline">Edit</Link>
-              <Link href={`/blog/${p.slug}`} className="text-muted hover:text-ink">View</Link>
+              <a href={`${siteUrl()}/blog/${p.slug}`} target="_blank" rel="noreferrer" className="text-muted hover:text-ink">View</a>
               <form action={toggleBlogPublishAction}><input type="hidden" name="id" value={p.id} /><button className="text-muted hover:text-ink">{p.published ? "Unpublish" : "Publish"}</button></form>
               <form action={deleteBlogPostAction}><input type="hidden" name="id" value={p.id} /><button className="text-gray-500 hover:text-rose-700">Delete</button></form>
             </div>
@@ -464,7 +465,7 @@ async function ChannelsTab() {
               <p className="font-semibold">#{ch.slug}</p>
               <p className="text-xs text-muted">{ch.description} · {ch.count} messages</p>
             </div>
-            <Link href={`/chat/${ch.slug}`} className="text-xs font-semibold text-brand">Open</Link>
+            <a href={`${siteUrl()}/chat/${ch.slug}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand">Open</a>
             <form action={clearChannelAction}><input type="hidden" name="id" value={ch.id} /><button className="text-xs font-semibold text-muted hover:text-ink">Clear</button></form>
             <form action={deleteChannelAction}><input type="hidden" name="id" value={ch.id} /><button className="text-xs font-semibold text-gray-500 hover:text-rose-700">Delete</button></form>
           </div>
@@ -485,14 +486,14 @@ async function RoomsTab() {
     .groupBy(meetRooms.id)
     .orderBy(desc(meetRooms.createdAt))
     .limit(50);
-  if (!list.length) return <p className="text-muted">No meeting rooms have been created yet. <Link href="/meet" className="text-brand underline">Create one</Link>.</p>;
+  if (!list.length) return <p className="text-muted">No meeting rooms have been created yet. <a href={`${siteUrl()}/meet`} target="_blank" rel="noreferrer" className="text-brand underline">Create one</a>.</p>;
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {list.map((r) => (
-        <Link key={r.code} href={`/meet/${r.code}`} className="flex items-center justify-between rounded-2xl bg-white p-4 ring-1 ring-black/5 hover:shadow-md">
+        <a key={r.code} href={`${siteUrl()}/meet/${r.code}`} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl bg-white p-4 ring-1 ring-black/5 hover:shadow-md">
           <span><span className="font-semibold">{r.title}</span><span className="block text-xs text-muted">{r.hostName} · {r.code} · {timeAgo(r.createdAt)}</span></span>
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${r.live ? "bg-emerald-100 text-emerald-800" : "bg-paper text-muted"}`}>{r.live} live</span>
-        </Link>
+        </a>
       ))}
     </div>
   );
