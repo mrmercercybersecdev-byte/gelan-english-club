@@ -30,11 +30,22 @@ export async function POST(request: Request) {
   const password = typeof body.password === "string" ? body.password.slice(0, 512) : "";
   const config = webAuthnConfig(request);
 
-  if (await isAdmin()) {
-    if (!verifyAdminPassword(password)) {
-      logSecurityEvent("admin-passkey", "enrollment_password", "failed");
-      return jsonError("Incorrect organiser password.", 401);
+  if (!adminPassword() || !verifyAdminPassword(password)) {
+    logSecurityEvent("admin-passkey", "password", "failed");
+    return jsonError("Incorrect organiser password.", 401);
+  }
+
+  let authenticatedAdmin = false;
+  try {
+    authenticatedAdmin = await isAdmin();
+  } catch (error) {
+    if (isMissingSchema(error)) {
+      return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
     }
+    throw error;
+  }
+
+  if (authenticatedAdmin) {
     let currentPasskeys;
     try {
       currentPasskeys = await db.select().from(adminPasskeys);
@@ -65,11 +76,6 @@ export async function POST(request: Request) {
       throw error;
     }
     return Response.json({ mode: "register", options });
-  }
-
-  if (!adminPassword() || !verifyAdminPassword(password)) {
-    logSecurityEvent("admin-passkey", "password", "failed");
-    return jsonError("Incorrect organiser password.", 401);
   }
 
   let currentPasskeys;
