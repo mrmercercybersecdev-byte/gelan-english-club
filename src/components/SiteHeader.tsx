@@ -158,7 +158,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
               Sign in
             </Link>
           )}
-          <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu">
+          <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen((o) => !o)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-site-navigation">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
             </svg>
@@ -166,12 +166,12 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
         </div>
       </div>
       {open && (
-        <nav className="grid grid-cols-2 gap-1 border-t border-black/5 px-3 pb-4 pt-2 sm:px-5 lg:hidden">
+        <nav id="mobile-site-navigation" className="grid grid-cols-2 gap-1 border-t border-black/5 px-3 pb-4 pt-2 sm:px-5 lg:hidden">
           {[...NAV, ...MORE].map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-lg px-3 py-2.5 text-sm font-medium ${isActive(item.href) ? "bg-ink text-white" : "hover:bg-black/5"}`}
+              className={`flex min-h-11 items-center rounded-lg px-3 py-2.5 text-sm font-medium ${isActive(item.href) ? "bg-ink text-white" : "hover:bg-black/5"}`}
             >
               {item.label}
             </Link>
