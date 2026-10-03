@@ -27,10 +27,10 @@ export default function MeetLobbyForms({ defaultName }: { defaultName: string })
           const c = code.trim().toLowerCase().replace(/.*\/meet\//, "");
           if (c) router.push(`/meet/${encodeURIComponent(c)}`);
         }}
-        className="flex gap-2"
+        className="flex flex-col gap-2 sm:flex-row"
       >
-        <input value={code} onChange={(e) => setCode(e.target.value)} className="input font-mono" placeholder="abc-defg-hij" />
-        <button className="btn-ghost shrink-0">Join</button>
+        <input value={code} onChange={(e) => setCode(e.target.value)} className="input w-full min-w-0 flex-1 font-mono" placeholder="abc-defg-hij" />
+        <button className="btn-ghost w-full shrink-0 sm:w-auto">Join</button>
       </form>
     </div>
   );

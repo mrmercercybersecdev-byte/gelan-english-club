@@ -11,11 +11,11 @@ export default function JoinForm() {
 
   if (state?.ok) {
     return (
-      <div className="py-10 text-center">
+      <div className="py-8 text-center sm:py-10">
         <p className="text-5xl">🎉</p>
         <h2 className="mt-4 font-display text-3xl font-bold">You&apos;re in!</h2>
         <p className="mx-auto mt-3 max-w-sm text-muted">{state.message}</p>
-        <Link href="/events" className="btn-primary mt-8">
+        <Link href="/events" className="btn-primary mt-8 inline-flex w-full justify-center sm:w-auto">
           Pick your first event →
         </Link>
       </div>

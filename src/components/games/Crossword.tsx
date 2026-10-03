@@ -20,6 +20,8 @@ export default function Crossword() {
   const [done, setDone] = useState<null | { score: number; ms: number }>(null);
   const [penalty, setPenalty] = useState(0);
   const [modal, setModal] = useState(false);
+  const [cellSize, setCellSize] = useState(24);
+  const boardViewportRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   const newGame = useCallback((s?: number) => {
@@ -49,6 +51,32 @@ export default function Crossword() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [done, start]);
+
+  useEffect(() => {
+    const viewport = boardViewportRef.current;
+    if (!cw || !viewport) return;
+
+    const updateCellSize = () => {
+      const columns = Math.max(cw.cols, cw.rows);
+      if (window.innerWidth >= 640) {
+        setCellSize(Math.max(24, Math.min(44, Math.floor(Math.min(560, window.innerWidth - 40) / columns))));
+        return;
+      }
+
+      const availableWidth = viewport.clientWidth - 16;
+      const fittedSize = Math.floor((availableWidth - 16 - 2 * (cw.cols - 1)) / cw.cols);
+      setCellSize(Math.max(12, Math.min(44, fittedSize)));
+    };
+
+    updateCellSize();
+    const observer = new ResizeObserver(updateCellSize);
+    observer.observe(viewport);
+    window.addEventListener("resize", updateCellSize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateCellSize);
+    };
+  }, [cw]);
 
   const numbers = useMemo(() => {
     const m = new Map<string, number>();
@@ -193,8 +221,6 @@ export default function Crossword() {
   const filled = cw ? fill.flat().filter(Boolean).length : 0;
   const total = cw ? cw.grid.flat().filter(Boolean).length : 1;
   const elapsed = done ? done.ms : now - start;
-  const cellSize = cw ? Math.max(24, Math.min(44, Math.floor(Math.min(560, window.innerWidth - 40) / Math.max(cw.cols, cw.rows)))) : 40;
-
   return (
     <GameShell
       title="Crossword"
@@ -214,8 +240,8 @@ export default function Crossword() {
                 <span className="text-sm sm:text-base">{activeWord.clue} <span className="text-white/50">({activeWord.word.length})</span></span>
               </div>
             )}
-            <div className="-mx-2 overflow-x-auto px-2 pb-2 sm:mx-0 sm:px-0">
-              <div ref={boardRef} role="group" aria-label="Crossword grid. Use the arrow keys to move, type letters to fill cells, and press Space or Tab for the next clue." tabIndex={0} onKeyDown={onKey} className="inline-block rounded-2xl bg-ink p-2 shadow-2xl outline-none ring-offset-4 focus:ring-4 focus:ring-teal-400/50">
+            <div ref={boardViewportRef} className="-mx-2 overflow-x-hidden px-2 pb-2 sm:mx-0 sm:px-0">
+              <div ref={boardRef} role="group" aria-label="Crossword grid. Use the arrow keys to move, type letters to fill cells, and press Space or Tab for the next clue." tabIndex={0} onKeyDown={onKey} className="inline-block max-w-full rounded-2xl bg-ink p-2 shadow-2xl outline-none ring-offset-4 focus:ring-4 focus:ring-teal-400/50">
                 <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${cw.cols}, ${cellSize}px)` }}>
                   {cw.grid.map((row, r) =>
                     row.map((ch, c) => {
