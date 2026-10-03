@@ -206,6 +206,23 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/* ================= Editable public page content ================= */
+export const siteContent = pgTable(
+  "site_content",
+  {
+    id: serial("id").primaryKey(),
+    pagePath: varchar("page_path", { length: 300 }).notNull(),
+    placement: varchar("placement", { length: 10 }).notNull().default("bottom"),
+    title: varchar("title", { length: 200 }).notNull().default(""),
+    body: text("body").notNull(),
+    linkLabel: varchar("link_label", { length: 80 }),
+    linkUrl: varchar("link_url", { length: 500 }),
+    published: boolean("published").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("site_content_page_pub_idx").on(t.pagePath, t.published)],
+);
+
 /* ================= AI provider settings ================= */
 export const aiSettings = pgTable("ai_settings", {
   id: serial("id").primaryKey(),

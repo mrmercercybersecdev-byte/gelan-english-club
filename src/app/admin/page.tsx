@@ -32,6 +32,7 @@ import {
 } from "@/app/actions";
 import LoginForm from "./LoginForm";
 import EventForm from "./EventForm";
+import PageContentTab from "./PageContentTab";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Organiser dashboard", robots: { index: false } };
@@ -42,6 +43,7 @@ const TABS = [
   ["groups", "👥 Groups"],
   ["events", "📅 Events & RSVPs"],
   ["blog", "📰 Blog"],
+  ["pages", "🧩 Page content"],
   ["team", "👑 Leaders & facilitators"],
   ["champions", "🏆 Champions"],
   ["history", "📜 History"],
@@ -79,7 +81,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   await ensureSeed();
   const { tab: rawTab, edit, status } = await searchParams;
-  const contentTabs = new Set(["announcements", "blog"]);
+  const contentTabs = new Set(["announcements", "blog", "pages"]);
   const visibleTabs = fullAdmin ? TABS : TABS.filter(([key]) => contentTabs.has(key));
   const tab = visibleTabs.some(([k]) => k === rawTab) ? rawTab! : fullAdmin ? "submissions" : "blog";
 
@@ -155,6 +157,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "groups" && <GroupsTab editId={Number(edit) || 0} />}
         {tab === "events" && <EventsTab />}
         {tab === "blog" && <BlogTab editId={Number(edit) || 0} />}
+        {tab === "pages" && <PageContentTab editId={Number(edit) || 0} />}
         {tab === "team" && <TeamTab editId={Number(edit) || 0} />}
         {tab === "champions" && <ChampionsTab editId={Number(edit) || 0} />}
         {tab === "history" && <HistoryTab editId={Number(edit) || 0} />}

@@ -16,6 +16,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { headers } from "next/headers";
 import { isAdminHostname } from "@/lib/admin-domain";
+import SiteContentBlocks from "@/components/SiteContentBlocks";
 
 export const viewport: Viewport = { themeColor: "#147d75", width: "device-width", initialScale: 1 };
 
@@ -53,6 +54,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </html>
     );
   }
+  const pagePath = requestHeaders.get("x-site-pathname") || "/";
 
   let user = null;
   try {
@@ -69,7 +71,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <LiveBanner />
         <AnnouncementBanner />
         <SiteHeader user={user} />
-        <main className="relative z-[2] flex-1">{children}</main>
+        <main className="relative z-[2] flex-1">
+          <SiteContentBlocks pagePath={pagePath} placement="top" />
+          {children}
+          <SiteContentBlocks pagePath={pagePath} placement="bottom" />
+        </main>
         <SiteFooter />
         <SupportWidget />
         <CommandPalette />

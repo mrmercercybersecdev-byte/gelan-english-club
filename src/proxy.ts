@@ -27,7 +27,9 @@ export function proxy(request: NextRequest) {
     if (!allowedPath) return new Response(null, { status: 404 });
   }
 
-  return NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-site-pathname", pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

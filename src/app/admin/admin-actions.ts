@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { blogPosts, channels, users, chatMessages, aiSettings } from "@/db/schema";
+import { blogPosts, channels, users, chatMessages, aiSettings, siteContent } from "@/db/schema";
 import { isAdmin, isContentManager } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { isSafeCoverImage } from "@/lib/image-url";
@@ -136,6 +136,43 @@ export async function clearAiSettingsAction(fd: FormData) {
   }
   revalidatePath("/admin");
   revalidatePath("/learn");
+}
+
+export async function saveSiteContentAction(fd: FormData) {
+  await contentGuard();
+  const id = Number(fd.get("id") || 0);
+  const pagePath = String(fd.get("pagePath") ?? "").trim().slice(0, 300);
+  const placement = String(fd.get("placement") ?? "bottom");
+  const title = String(fd.get("title") ?? "").trim().slice(0, 200);
+  const body = String(fd.get("body") ?? "").trim().slice(0, 10000);
+  const linkLabel = String(fd.get("linkLabel") ?? "").trim().slice(0, 80);
+  const linkUrl = String(fd.get("linkUrl") ?? "").trim().slice(0, 500);
+  const published = fd.get("published") === "on";
+  if (!/^\/(?!\/)[a-zA-Z0-9_/?=&%.-]*$/.test(pagePath) || pagePath.includes("..")) throw new Error("Choose a valid site path, such as /about.");
+  if (! ["top", "bottom"].includes(placement)) throw new Error("Choose a valid placement.");
+  if (!body) throw new Error("Content is required.");
+  if (linkUrl && !linkUrl.startsWith("/") && !/^https:\/\//i.test(linkUrl)) throw new Error("Links must be a site path or secure HTTPS URL.");
+  const values = { pagePath, placement, title, body, linkLabel: linkLabel || null, linkUrl: linkUrl || null, published, updatedAt: new Date() };
+  let savedId = id;
+  if (id) await db.update(siteContent).set(values).where(eq(siteContent.id, id));
+  else savedId = (await db.insert(siteContent).values(values).returning({ id: siteContent.id }))[0].id;
+  await recordAudit(id ? "page_content.update" : "page_content.create", "site_content", savedId, { pagePath, placement, published });
+  revalidatePath(pagePath);
+  revalidatePath("/admin");
+  redirect("/admin?tab=pages");
+}
+
+export async function deleteSiteContentAction(fd: FormData) {
+  await contentGuard();
+  const id = Number(fd.get("id"));
+  if (!Number.isSafeInteger(id) || id < 1) return;
+  const [row] = await db.select({ pagePath: siteContent.pagePath }).from(siteContent).where(eq(siteContent.id, id));
+  if (row) {
+    await db.delete(siteContent).where(eq(siteContent.id, id));
+    await recordAudit("page_content.delete", "site_content", id, { pagePath: row.pagePath });
+    revalidatePath(row.pagePath);
+  }
+  revalidatePath("/admin");
 }
 
 export async function userAdminAction(fd: FormData) {
