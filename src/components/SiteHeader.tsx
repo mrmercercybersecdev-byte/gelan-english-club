@@ -86,7 +86,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-cream/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:px-5">
         <Logo />
         <nav className="hidden items-center gap-0.5 lg:flex">
           {NAV.map((item) => (
@@ -117,7 +117,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
           </div>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => window.dispatchEvent(new Event("wec:palette"))}
             className="hidden items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs text-muted hover:border-black/20 md:flex"
@@ -127,7 +127,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
           <NotificationBell loggedIn={!!user} />
           {user ? (
             <div className="relative" ref={menuRef}>
-              <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 ring-1 ring-black/10 hover:ring-black/20">
+              <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-2 ring-1 ring-black/10 hover:ring-black/20 sm:pr-3">
                 <Avatar name={user.displayName} color={user.avatarColor} size={28} />
                 <span className="hidden text-left text-xs leading-tight sm:block">
                   <span className="block font-semibold">{user.displayName}</span>
@@ -160,7 +160,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
         </div>
       </div>
       {open && (
-        <nav className="grid grid-cols-2 gap-1 border-t border-black/5 px-5 pb-4 pt-2 lg:hidden">
+        <nav className="grid grid-cols-2 gap-1 border-t border-black/5 px-3 pb-4 pt-2 sm:px-5 lg:hidden">
           {[...NAV, ...MORE].map((item) => (
             <Link
               key={item.href}

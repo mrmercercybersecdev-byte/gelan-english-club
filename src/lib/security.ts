@@ -41,7 +41,8 @@ const g = globalThis as typeof globalThis & { __wecRate?: Map<string, Bucket>; _
 const store = (g.__wecRate ??= new Map());
 
 export const LIMITS = {
-  login: { max: 10, windowSec: 300 },
+  login: { max: 5, windowSec: 300 },
+  admin: { max: 3, windowSec: 600 },
   signup: { max: 5, windowSec: 3600 },
   ai: { max: 30, windowSec: 60 },
   chat: { max: 20, windowSec: 30 },
@@ -100,6 +101,16 @@ export function sameOrigin(req: Request) {
   }
 }
 
+/** Validate admin password strength: minimum 12 characters, uppercase, lowercase, number, symbol */
+export function isStrongPassword(pwd: string): { valid: boolean; reason?: string } {
+  if (!pwd || pwd.length < 12) return { valid: false, reason: "Minimum 12 characters" };
+  if (!/[A-Z]/.test(pwd)) return { valid: false, reason: "Must include uppercase letter" };
+  if (!/[a-z]/.test(pwd)) return { valid: false, reason: "Must include lowercase letter" };
+  if (!/[0-9]/.test(pwd)) return { valid: false, reason: "Must include number" };
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) return { valid: false, reason: "Must include symbol (!@#$...)" };
+  return { valid: true };
+}
+
 /* ---------------- Logging ---------------- */
 export function logError(scope: string, err: unknown, extra?: Record<string, unknown>) {
   const e = err instanceof Error ? { message: err.message, stack: err.stack?.split("\n").slice(0, 4).join(" | ") } : { message: String(err) };
@@ -110,6 +121,20 @@ export function logInfo(scope: string, msg: string, extra?: Record<string, unkno
   console.log(JSON.stringify({ level: "info", scope, time: new Date().toISOString(), msg, ...extra }));
 }
 
+export function logSecurityEvent(scope: string, action: string, result: "success" | "failed", extra?: Record<string, unknown>) {
+  console.log(
+    JSON.stringify({
+      level: "info",
+      scope: `security.${scope}`,
+      time: new Date().toISOString(),
+      action,
+      result,
+      ...extra,
+    }),
+  );
+}
+
 export function isDefaultAdminPassword() {
   return !process.env.ADMIN_PASSWORD;
 }
+

@@ -14,30 +14,30 @@ export default async function LearnPage() {
     <div>
       <section className="aurora-bg relative overflow-hidden text-white">
         <div className="grid-bg absolute inset-0 opacity-60" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 py-16 md:grid-cols-[1.3fr_1fr]">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 sm:px-5 sm:py-16 md:grid-cols-[1.3fr_1fr]">
           <div>
-            <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold">
+            <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-semibold sm:text-xs">
               <span className={`h-2 w-2 rounded-full ${ai ? "bg-emerald-400" : "bg-gold"}`} />
               {ai ? "AI tutors online" : "Built-in tutor engine active"}
             </span>
-            <h1 className="mt-5 font-display text-5xl font-bold md:text-6xl">AI Learning <span className="text-gradient">Lab</span></h1>
-            <p className="mt-4 max-w-xl text-lg text-white/75">
+            <h1 className="mt-5 font-display text-4xl font-bold sm:text-5xl md:text-6xl">AI Learning <span className="text-gradient">Lab</span></h1>
+            <p className="mt-4 max-w-xl text-base text-white/75 sm:text-lg">
               Personal tutors for IELTS, SAT, TOEFL and everyday English. Chat with an examiner, get instant essay band
               scores, and race the clock in timed quizzes — every answer earns XP.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2 text-xs">
+            <div className="mt-6 flex flex-wrap gap-2 text-[10px] sm:text-xs">
               {["Mock speaking examiner", "Essay band estimator", "Grammar corrector", "Timed quizzes", "Strategy coach"].map((t) => (
                 <span key={t} className="glass rounded-full px-3 py-1.5">{t}</span>
               ))}
             </div>
           </div>
-          <div className="h-72 md:h-80">
+          <div className="h-56 sm:h-72 md:h-80">
             <DnaHelix colorA="#60a5fa" colorB="#f472b6" letters="IELTSSATTOEFLGRAMMAR" horizontal nodes={24} turns={2} />
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-16">
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-16">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {TRACKS.map((t, i) => (
             <Reveal key={t.id} delay={i * 80}>

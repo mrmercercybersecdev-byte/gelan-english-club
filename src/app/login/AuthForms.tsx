@@ -14,7 +14,7 @@ export default function AuthForms({ next, groups = [], error }: { next: string; 
   const [signupState, signup] = useActionState<FormState, FormData>(signupAction, null);
 
   return (
-    <div className="rounded-3xl bg-white p-7 shadow-xl ring-1 ring-black/5 md:p-9">
+    <div className="rounded-3xl bg-white p-5 shadow-xl ring-1 ring-black/5 sm:p-7 md:p-9">
       {error && <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       <a href={`/api/auth/google/start?next=${encodeURIComponent(next)}`} className="flex w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 font-semibold shadow-sm transition hover:bg-paper">
         <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-sm font-bold text-blue-600 ring-1 ring-black/10">G</span>
