@@ -14,6 +14,8 @@ import { siteUrl } from "@/lib/site";
 import type { Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { headers } from "next/headers";
+import { isAdminHostname } from "@/lib/admin-domain";
 
 export const viewport: Viewport = { themeColor: "#147d75", width: "device-width", initialScale: 1 };
 
@@ -41,6 +43,17 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
+  const requestHeaders = await headers();
+  if (isAdminHostname(requestHeaders.get("host"))) {
+    return (
+      <html lang="en">
+        <body className="min-h-screen bg-cream text-ink antialiased">
+          <main>{children}</main>
+        </body>
+      </html>
+    );
+  }
+
   let user = null;
   try {
     const u = await getCurrentUser();

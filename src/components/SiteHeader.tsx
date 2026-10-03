@@ -31,7 +31,6 @@ const MORE = [
   { href: "/join", label: "Membership" },
   { href: "/contact", label: "Contact" },
   { href: "/contact-developer", label: "Contact developer" },
-  { href: "/admin", label: "Organisers" },
 ];
 
 export function Avatar({ name, color, size = 32 }: { name: string; color: string; size?: number }) {
@@ -144,9 +143,6 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
                   <Link href="/submit" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">My submissions</Link>
                   <Link href="/groups?mine=1" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">My groups</Link>
                   <Link href="/leaderboard" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">Leaderboard</Link>
-                  {(user.role === "admin" || user.role === "leader" || user.role === "teacher") && (
-                    <Link href="/admin" className="block rounded-xl px-3 py-2 text-sm hover:bg-paper">Organiser dashboard</Link>
-                  )}
                   <form action={logoutUserAction}>
                     <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-brand hover:bg-paper">Log out</button>
                   </form>
