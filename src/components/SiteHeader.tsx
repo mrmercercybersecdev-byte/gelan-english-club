@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -47,10 +48,13 @@ export function Avatar({ name, color, size = 32 }: { name: string; color: string
 export function Logo() {
   return (
     <Link href="/" className="group flex items-center gap-2.5">
-      <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-brand font-display text-lg font-bold text-white shadow-sm transition group-hover:rotate-6">
-        G
-        <span className="shimmer absolute inset-0" />
-      </span>
+      <Image
+        src="/images/gelan-english-club-logo.jpeg"
+        alt="Gelan English Club logo"
+        width={40}
+        height={40}
+        className="h-10 w-10 rounded-xl bg-white object-contain shadow-sm transition group-hover:rotate-3"
+      />
       <span className="leading-tight">
         <span className="block font-display text-lg font-bold">Gelan</span>
         <span className="block text-[10px] font-medium uppercase tracking-[0.18em] text-muted">English Club</span>
