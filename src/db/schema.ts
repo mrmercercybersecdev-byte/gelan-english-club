@@ -76,7 +76,6 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 32 }).notNull().unique(),
   email: varchar("email", { length: 320 }).unique(),
-  emailVerified: boolean("email_verified").notNull().default(true),
   googleId: varchar("google_id", { length: 255 }).unique(),
   displayName: varchar("display_name", { length: 60 }).notNull(),
   passwordHash: text("password_hash").notNull(),
@@ -90,14 +89,6 @@ export const users = pgTable("users", {
   role: varchar("role", { length: 20 }).notNull().default("member"),
   banned: boolean("banned").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const emailVerificationTokens = pgTable("email_verification_tokens", {
-  userId: integer("user_id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
 export const sessions = pgTable(

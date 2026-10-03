@@ -1,23 +1,21 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { loginUserAction, resendVerificationEmailAction, signupAction } from "@/app/user-actions";
+import { loginUserAction, signupAction } from "@/app/user-actions";
 import type { FormState } from "@/app/actions";
 import { FormNotice, SubmitButton } from "@/components/FormBits";
 import { LEVELS } from "@/lib/format";
 
 type G = { id: number; name: string; emoji: string; joinPolicy: string };
 
-export default function AuthForms({ next, groups = [], error, verified = false }: { next: string; groups?: G[]; error?: string; verified?: boolean }) {
+export default function AuthForms({ next, groups = [], error }: { next: string; groups?: G[]; error?: string }) {
   const [tab, setTab] = useState<"login" | "signup">("signup");
   const [loginState, loginAction] = useActionState<FormState, FormData>(loginUserAction, null);
   const [signupState, signup] = useActionState<FormState, FormData>(signupAction, null);
-  const [resendState, resend] = useActionState<FormState, FormData>(resendVerificationEmailAction, null);
 
   return (
     <div className="rounded-3xl bg-white p-5 shadow-xl ring-1 ring-black/5 sm:p-7 md:p-9">
       {error && <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
-      {verified && <p role="status" className="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">✓ Email confirmed. You can log in now.</p>}
       <a href={`/api/auth/google/start?next=${encodeURIComponent(next)}`} className="flex w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 font-semibold shadow-sm transition hover:bg-paper">
         <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-sm font-bold text-blue-600 ring-1 ring-black/10">G</span>
         Continue with Google
@@ -45,11 +43,6 @@ export default function AuthForms({ next, groups = [], error, verified = false }
               <label className="label" htmlFor="su-display">Display name</label>
               <input className="input" id="su-display" name="displayName" maxLength={60} placeholder="Alex" />
             </div>
-          </div>
-          <div>
-            <label className="label" htmlFor="su-email">Email address</label>
-            <input className="input" id="su-email" name="email" type="email" required maxLength={320} autoComplete="email" placeholder="you@example.com" />
-            <p className="mt-1 text-[11px] text-muted">We&apos;ll email you a link to activate your account.</p>
           </div>
           <div>
             <label className="label" htmlFor="su-password">Password</label>
@@ -104,17 +97,6 @@ export default function AuthForms({ next, groups = [], error, verified = false }
           <SubmitButton className="w-full">Log in</SubmitButton>
         </form>
       )}
-      <details className="mt-5 border-t border-black/5 pt-4">
-        <summary className="cursor-pointer text-sm font-semibold text-brand">Didn&apos;t receive the confirmation email?</summary>
-        <form action={resend} className="mt-3 space-y-3">
-          <div>
-            <label className="label" htmlFor="resend-email">Email address</label>
-            <input className="input" id="resend-email" name="email" type="email" required maxLength={320} autoComplete="email" placeholder="you@example.com" />
-          </div>
-          <FormNotice state={resendState} />
-          <SubmitButton className="w-full">Send a new confirmation link</SubmitButton>
-        </form>
-      </details>
     </div>
   );
 }
