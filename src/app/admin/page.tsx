@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { db } from "@/db";
-import { auditLogs, events, members, messages, posts, rsvps, users, chatMessages, blogPosts, channels, meetRooms, meetPeers, submissions, groupMembers, adminPasskeys } from "@/db/schema";
+import { auditLogs, events, members, messages, posts, rsvps, users, chatMessages, blogPosts, channels, meetRooms, meetPeers, submissions, groupMembers } from "@/db/schema";
 import { levelFromXp } from "@/lib/xp";
 import { Avatar } from "@/components/SiteHeader";
 import BlogEditor from "./BlogEditor";
@@ -31,7 +31,6 @@ import {
 } from "@/app/actions";
 import LoginForm from "./LoginForm";
 import EventForm from "./EventForm";
-import PasskeyManager from "./PasskeyManager";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Organiser dashboard", robots: { index: false } };
@@ -78,14 +77,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   }
 
   await ensureSeed();
-  const passkeyRows = fullAdmin
-    ? await db.select({
-      credentialId: adminPasskeys.credentialId,
-      createdAt: adminPasskeys.createdAt,
-      deviceType: adminPasskeys.deviceType,
-      backedUp: adminPasskeys.backedUp,
-    }).from(adminPasskeys)
-    : [];
   const { tab: rawTab, edit, status } = await searchParams;
   const contentTabs = new Set(["announcements", "blog"]);
   const visibleTabs = fullAdmin ? TABS : TABS.filter(([key]) => contentTabs.has(key));
@@ -123,14 +114,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       {isDefaultAdminPassword() && (
         <div className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm text-rose-900 ring-1 ring-rose-200">
           ⚠️ <strong>Security:</strong> organiser password login is not configured. Set the <code>ADMIN_PASSWORD</code> environment variable before going live.
-        </div>
-      )}
-      {fullAdmin && (
-        <div className="mt-6">
-          <PasskeyManager initialCredentials={passkeyRows.map((credential) => ({
-            ...credential,
-            createdAt: credential.createdAt.toISOString(),
-          }))} />
         </div>
       )}
       <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-5">
