@@ -9,15 +9,25 @@ import { db } from "@/db";
 import { adminPasskeys } from "@/db/schema";
 import { createAdminSession, isAdmin, verifyAdminPassword } from "@/lib/auth";
 import { consumeAdminChallenge, isTrustedOrigin, webAuthnConfig } from "@/lib/admin-passkeys";
-import { limitRequest, logSecurityEvent, sameOrigin } from "@/lib/security";
+import { limitRequest, logError, logSecurityEvent, sameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 function jsonError(message: string, status: number) {
-  return Response.json({ error: message }, { status });
+  void message;
+  return Response.json({ error: "Unable to complete organiser sign-in." }, { status });
 }
 
 export async function POST(request: Request) {
+  try {
+    return await handleVerification(request);
+  } catch (error) {
+    logError("admin-passkey.verify", error);
+    return jsonError("Unable to complete organiser sign-in.", 500);
+  }
+}
+
+async function handleVerification(request: Request) {
   if (!sameOrigin(request) || !isTrustedOrigin(request)) return jsonError("Request origin is not allowed.", 403);
   const limited = limitRequest(request, "admin", "passkey-verify");
   if (limited) return limited;

@@ -11,18 +11,18 @@ type OptionsResponse =
   | { mode: "register"; options: PublicKeyCredentialCreationOptionsJSON }
   | { mode: "authenticate"; options: PublicKeyCredentialRequestOptionsJSON };
 
-async function readApiResponse<T extends { error?: string }>(response: Response, action: string): Promise<T> {
+async function readApiResponse<T extends { error?: string }>(response: Response): Promise<T> {
   let payload: unknown;
   try {
     payload = JSON.parse(await response.text());
   } catch {
-    throw new Error(`${action} failed because the server returned an invalid response (HTTP ${response.status}). The passkey database schema may need to be applied.`);
+    throw new Error("Organiser sign-in is temporarily unavailable.");
   }
   if (!payload || typeof payload !== "object") {
-    throw new Error(`${action} failed because the server returned an invalid response (HTTP ${response.status}).`);
+    throw new Error("Organiser sign-in is temporarily unavailable.");
   }
   const data = payload as T;
-  if (!response.ok) throw new Error(data.error || `${action} failed (HTTP ${response.status}).`);
+  if (!response.ok) throw new Error("Organiser sign-in could not be completed.");
   return data;
 }
 
@@ -43,7 +43,7 @@ export default function LoginForm({ showHint = true }: { showHint?: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      const optionsData = await readApiResponse<OptionsResponse & { error?: string }>(optionsResponse, "Could not start organiser sign-in");
+      const optionsData = await readApiResponse<OptionsResponse & { error?: string }>(optionsResponse);
 
       let response: unknown;
       let mode: "register" | "authenticate";
@@ -63,10 +63,10 @@ export default function LoginForm({ showHint = true }: { showHint?: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, password, response }),
       });
-      await readApiResponse<{ error?: string }>(verifyResponse, "Passkey verification failed");
+      await readApiResponse<{ error?: string }>(verifyResponse);
       window.location.assign("/admin");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Organiser sign-in failed.");
+    } catch {
+      setError("Unable to sign in. Check your password and device verification, then try again. If the problem continues, contact the site administrator.");
       setPhase("idle");
     }
   }

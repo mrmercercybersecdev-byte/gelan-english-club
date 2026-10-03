@@ -3,13 +3,14 @@ import { db } from "@/db";
 import { adminPasskeys } from "@/db/schema";
 import { adminPassword, isAdmin, verifyAdminPassword } from "@/lib/auth";
 import { saveAdminChallenge, webAuthnConfig, isTrustedOrigin } from "@/lib/admin-passkeys";
-import { limitRequest, logSecurityEvent } from "@/lib/security";
+import { limitRequest, logError, logSecurityEvent } from "@/lib/security";
 import { sameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 function jsonError(message: string, status: number) {
-  return Response.json({ error: message }, { status });
+  void message;
+  return Response.json({ error: "Unable to complete organiser sign-in." }, { status });
 }
 
 function isMissingSchema(error: unknown) {
@@ -17,6 +18,15 @@ function isMissingSchema(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await handleOptions(request);
+  } catch (error) {
+    logError("admin-passkey.options", error);
+    return jsonError("Unable to complete organiser sign-in.", 500);
+  }
+}
+
+async function handleOptions(request: Request) {
   if (!sameOrigin(request) || !isTrustedOrigin(request)) return jsonError("Request origin is not allowed.", 403);
   const limited = limitRequest(request, "admin", "passkey-options");
   if (limited) return limited;
@@ -40,7 +50,8 @@ export async function POST(request: Request) {
     authenticatedAdmin = await isAdmin();
   } catch (error) {
     if (isMissingSchema(error)) {
-      return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+      logError("admin-passkey.schema", error);
+      return jsonError("Unable to complete organiser sign-in.", 503);
     }
     throw error;
   }
@@ -51,7 +62,8 @@ export async function POST(request: Request) {
       currentPasskeys = await db.select().from(adminPasskeys);
     } catch (error) {
       if (isMissingSchema(error)) {
-        return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+        logError("admin-passkey.schema", error);
+        return jsonError("Unable to complete organiser sign-in.", 503);
       }
       throw error;
     }
@@ -71,7 +83,8 @@ export async function POST(request: Request) {
       await saveAdminChallenge(options.challenge, "enroll");
     } catch (error) {
       if (isMissingSchema(error)) {
-        return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+        logError("admin-passkey.schema", error);
+        return jsonError("Unable to complete organiser sign-in.", 503);
       }
       throw error;
     }
@@ -83,7 +96,8 @@ export async function POST(request: Request) {
     currentPasskeys = await db.select().from(adminPasskeys);
   } catch (error) {
     if (isMissingSchema(error)) {
-      return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+      logError("admin-passkey.schema", error);
+      return jsonError("Unable to complete organiser sign-in.", 503);
     }
     throw error;
   }
@@ -100,7 +114,8 @@ export async function POST(request: Request) {
       await saveAdminChallenge(options.challenge, "bootstrap");
     } catch (error) {
       if (isMissingSchema(error)) {
-        return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+        logError("admin-passkey.schema", error);
+        return jsonError("Unable to complete organiser sign-in.", 503);
       }
       throw error;
     }
@@ -119,7 +134,8 @@ export async function POST(request: Request) {
     await saveAdminChallenge(options.challenge, "login");
   } catch (error) {
     if (isMissingSchema(error)) {
-      return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+      logError("admin-passkey.schema", error);
+      return jsonError("Unable to complete organiser sign-in.", 503);
     }
     throw error;
   }
