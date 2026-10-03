@@ -21,7 +21,7 @@ export default function PasskeyManager({ initialCredentials }: { initialCredenti
   const [message, setMessage] = useState("");
 
   async function loadCredentials() {
-    const response = await fetch("/api/admin/passkey/credentials");
+    const response = await fetch("/api/admin/passkey/credentials", { credentials: "same-origin" });
     const data = await response.json() as { credentials?: AdminCredential[]; error?: string };
     if (!response.ok) throw new Error(data.error || "Unable to load passkeys.");
     setCredentials(data.credentials ?? []);
@@ -36,6 +36,7 @@ export default function PasskeyManager({ initialCredentials }: { initialCredenti
     try {
       const optionsResponse = await fetch("/api/admin/passkey/options", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
@@ -50,6 +51,7 @@ export default function PasskeyManager({ initialCredentials }: { initialCredenti
       const response = await startRegistration({ optionsJSON: optionsData.options });
       const verifyResponse = await fetch("/api/admin/passkey/verify", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "register", response }),
       });
@@ -74,6 +76,7 @@ export default function PasskeyManager({ initialCredentials }: { initialCredenti
     try {
       const response = await fetch("/api/admin/passkey/credentials", {
         method: "DELETE",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credentialId: removeId, password: removePassword }),
       });

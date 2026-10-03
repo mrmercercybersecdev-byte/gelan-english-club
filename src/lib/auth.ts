@@ -4,6 +4,7 @@ import { and, eq, gt, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { adminSessions } from "@/db/schema";
 import { getCurrentUser } from "./session";
+import { cookieSecure } from "./security";
 
 export const ADMIN_COOKIE = "wec_admin";
 
@@ -13,7 +14,7 @@ export function adminPassword() {
 
 export function verifyAdminPassword(candidate: string) {
   const expected = adminPassword();
-  if (!expected || candidate.length !== expected.length) return false;
+  if (!expected) return false;
   const actualHash = createHash("sha256").update(candidate).digest();
   const expectedHash = createHash("sha256").update(expected).digest();
   return timingSafeEqual(actualHash, expectedHash);
@@ -22,8 +23,8 @@ export function verifyAdminPassword(candidate: string) {
 function adminCookieOptions() {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict" as const,
+    secure: cookieSecure(),
+    sameSite: "lax" as const,
     path: "/",
   };
 }

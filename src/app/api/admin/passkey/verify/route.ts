@@ -8,14 +8,13 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { adminPasskeys } from "@/db/schema";
 import { createAdminSession, isAdmin, verifyAdminPassword } from "@/lib/auth";
-import { consumeAdminChallenge, isTrustedOrigin, webAuthnConfig } from "@/lib/admin-passkeys";
+import { consumeAdminChallenge, isTrustedOrigin, parseTransports, webAuthnConfig } from "@/lib/admin-passkeys";
 import { limitRequest, logError, logSecurityEvent, sameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 function jsonError(message: string, status: number) {
-  void message;
-  return Response.json({ error: "Unable to complete organiser sign-in." }, { status });
+  return Response.json({ error: message }, { status });
 }
 
 export async function POST(request: Request) {
@@ -28,7 +27,9 @@ export async function POST(request: Request) {
 }
 
 async function handleVerification(request: Request) {
-  if (!sameOrigin(request) || !isTrustedOrigin(request)) return jsonError("Request origin is not allowed.", 403);
+  if (!sameOrigin(request) || !isTrustedOrigin(request)) {
+    return jsonError("This sign-in page origin is not allowed. Open the site on its HTTPS domain and try again.", 403);
+  }
   const limited = limitRequest(request, "admin", "passkey-verify");
   if (limited) return limited;
 
@@ -108,7 +109,7 @@ async function handleVerification(request: Request) {
   if (challenge.purpose !== "login") return jsonError("Passkey request expired. Start again.", 400);
   const assertion = body.response as AuthenticationResponseJSON;
   if (typeof assertion.id !== "string" || assertion.id.length > 1024) {
-    return jsonError("Passkey sign-in failed.", 401);
+    return jsonError("Passkey sign-in failed. Try again, or use a device that already has a passkey.", 401);
   }
   const [stored] = await db
     .select()
@@ -117,7 +118,7 @@ async function handleVerification(request: Request) {
     .limit(1);
   if (!stored) {
     logSecurityEvent("admin-passkey", "authentication", "failed");
-    return jsonError("Passkey sign-in failed.", 401);
+    return jsonError("Passkey sign-in failed. Try again, or use a device that already has a passkey.", 401);
   }
 
   let verification;
@@ -132,16 +133,16 @@ async function handleVerification(request: Request) {
         id: stored.credentialId,
         publicKey: new Uint8Array(Buffer.from(stored.publicKey, "base64url")),
         counter: stored.counter,
-        transports: JSON.parse(stored.transports) as AuthenticatorTransport[],
+        transports: parseTransports(stored.transports),
       },
     });
   } catch {
     logSecurityEvent("admin-passkey", "authentication", "failed");
-    return jsonError("Passkey sign-in failed.", 401);
+    return jsonError("Passkey sign-in failed. Try again, or use a device that already has a passkey.", 401);
   }
   if (!verification.verified) {
     logSecurityEvent("admin-passkey", "authentication", "failed");
-    return jsonError("Passkey sign-in failed.", 401);
+    return jsonError("Passkey sign-in failed. Try again, or use a device that already has a passkey.", 401);
   }
 
   await db

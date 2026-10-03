@@ -2,6 +2,7 @@ import type { JSX, SVGProps } from "react";
 
 export type IconName =
   | "announcement"
+  | "arrow-left"
   | "arrow-up-right"
   | "award"
   | "book"
@@ -28,6 +29,12 @@ const ICONS: Record<IconName, (props: SVGProps<SVGSVGElement>) => JSX.Element> =
       <path d="M5 12h14" />
       <path d="M12 5v14" />
       <circle cx="12" cy="12" r="8" />
+    </svg>
+  ),
+  "arrow-left": (props) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M19 12H5" />
+      <path d="m11 6-6 6 6 6" />
     </svg>
   ),
   "arrow-up-right": (props) => (
@@ -123,7 +130,7 @@ const ICONS: Record<IconName, (props: SVGProps<SVGSVGElement>) => JSX.Element> =
   ),
   star: (props) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m12 3 2.6 5.3 5.9.9-4.2 4.1 1 5.7L12 0l-5.3 2.8 1-5.7L3.5 9.2l5.9-.9L12 3Z" />
+      <path d="m12 3 2.6 5.3 5.9.9-4.2 4.1 1 5.7L12 16.5 6.7 19l1-5.7-4.2-4.1 5.9-.9L12 3Z" />
     </svg>
   ),
   trophy: (props) => (
@@ -151,6 +158,9 @@ const ICONS: Record<IconName, (props: SVGProps<SVGSVGElement>) => JSX.Element> =
 export function toIconName(value: string | null | undefined) {
   const normalized = (value ?? "").toLowerCase();
   const map: Record<string, IconName> = {
+    "arrow-left": "arrow-left",
+    "arrow-up-right": "arrow-up-right",
+    close: "close",
     announcement: "announcement",
     news: "announcement",
     book: "book",
@@ -163,6 +173,8 @@ export function toIconName(value: string | null | undefined) {
     video: "video",
     microphone: "microphone",
     sparkles: "sparkles",
+    zap: "sparkles",
+    lightbulb: "star",
     award: "award",
     shield: "shield",
     check: "check",

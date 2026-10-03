@@ -71,7 +71,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
           <h1 className="font-display text-3xl font-bold">Organiser login</h1>
           <p className="mt-2 text-sm text-muted">This area is for club organisers only.</p>
-          <LoginForm showHint={isDefaultAdminPassword()} />
+          <LoginForm configured={!isDefaultAdminPassword()} />
         </div>
       </div>
     );

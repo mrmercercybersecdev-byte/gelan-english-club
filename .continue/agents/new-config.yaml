@@ -1,0 +1,19 @@
+{
+  "models": [
+    {
+      "apiKey": "REPLACED_BY_USER"
+    },
+    {
+      "title": "Llama 3.1 8B (Groq)",
+      "provider": "groq",
+      "model": "llama3-8b-8192",
+      "apiKey": "REPLACED_BY_USER"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "Llama 3.1 8B (Groq)",
+    "provider": "groq",
+    "model": "llama3-8b-8192",
+    "apiKey": "REPLACED_BY_USER"
+  }
+}

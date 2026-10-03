@@ -169,7 +169,7 @@ export default async function Home() {
                 <TiltCard className="h-full rounded-3xl">
                   <Link href={f.href} className="group block h-full overflow-hidden rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5 transition hover:shadow-xl">
                     <div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${f.color} text-white shadow-lg transition group-hover:scale-110 group-hover:rotate-6`}>
-                      <Icon name={f.icon as any} size={24} />
+                      <Icon name={f.icon} size={24} />
                     </div>
                     <h3 className="mt-5 font-display text-2xl font-bold">{f.title}</h3>
                     <p className="mt-2 text-muted">{f.text}</p>
@@ -203,7 +203,7 @@ export default async function Home() {
                   <div className="glass rounded-3xl p-8">
                     <div className="flex items-center gap-4">
                       <span className="font-display text-6xl font-bold text-white/10">{s.k}</span>
-                      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/10 text-white"><Icon name={s.icon as any} size={26} /></span>
+                      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/10 text-white"><Icon name={s.icon} size={26} /></span>
                     </div>
                     <h3 className="mt-3 font-display text-3xl font-bold">{s.title}</h3>
                     <p className="mt-2 text-white/70">{s.text}</p>

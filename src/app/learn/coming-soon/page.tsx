@@ -75,7 +75,7 @@ export default function ComingSoonPage() {
             <Reveal key={f.title} delay={i * 60}>
               <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-7">
                 <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-brand to-gold text-white">
-                  <Icon name={f.icon as any} size={20} />
+                  <Icon name={f.icon} size={20} />
                 </div>
                 <h3 className="mt-4 font-display text-lg font-bold">{f.title}</h3>
                 <p className="mt-2 text-sm text-muted leading-relaxed">{f.desc}</p>
