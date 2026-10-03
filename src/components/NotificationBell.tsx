@@ -2,9 +2,28 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Ann = { id: number; title: string; category: string; createdAt: string; pinned: boolean };
 type Note = { id: number; title: string; body: string; href: string | null; read: boolean; createdAt: string; kind: string };
+type PanelPosition = { top: number; left: number; width: number; maxHeight: number };
+
+function getPanelPosition(trigger: HTMLElement): PanelPosition {
+  const viewportWidth = document.documentElement.clientWidth;
+  const width = Math.max(0, Math.min(340, viewportWidth - 24));
+  const triggerRect = trigger.getBoundingClientRect();
+  const top = triggerRect.bottom + 8;
+  const left = window.matchMedia("(max-width: 639px)").matches
+    ? 12
+    : Math.max(12, Math.min(triggerRect.right - width, viewportWidth - width - 12));
+
+  return {
+    top,
+    left,
+    width,
+    maxHeight: Math.max(120, window.innerHeight - top - 12),
+  };
+}
 
 function ago(s: string) {
   const m = Math.floor((Date.now() - new Date(s).getTime()) / 60000);
@@ -20,7 +39,10 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
   const [lastSeenAnn, setLastSeenAnn] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [panelPosition, setPanelPosition] = useState<PanelPosition | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -34,6 +56,7 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     setLastSeenAnn(Number(localStorage.getItem("wec:last-ann") || 0));
     load();
     const t = setInterval(load, 60_000);
@@ -46,16 +69,39 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
   }, [load]);
 
   useEffect(() => {
-    const on = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const on = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
+    };
     document.addEventListener("click", on);
     return () => document.removeEventListener("click", on);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      const trigger = ref.current?.querySelector("button");
+      if (trigger) setPanelPosition(getPanelPosition(trigger));
+    };
+    reposition();
+    window.addEventListener("resize", reposition);
+    window.addEventListener("orientationchange", reposition);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("orientationchange", reposition);
+    };
+  }, [open]);
 
   const newAnn = ann.filter((a) => a.id > lastSeenAnn).length;
   const badge = unread + newAnn;
 
   function toggle() {
     const next = !open;
+    if (next) {
+      const trigger = ref.current?.querySelector("button");
+      if (trigger) setPanelPosition(getPanelPosition(trigger));
+    }
     setOpen(next);
     if (next) {
       const maxId = Math.max(0, ...ann.map((a) => a.id));
@@ -73,8 +119,18 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
         <span className={badge ? "animate-[pop_.6s_ease-out]" : ""}>🔔</span>
         {badge > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">{badge > 9 ? "9+" : badge}</span>}
       </button>
-      {open && (
-        <div className="animate-toast fixed left-3 right-3 top-[4.5rem] z-[60] w-auto overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:z-auto sm:mt-2 sm:w-[340px] sm:max-w-[90vw]">
+      {mounted && open && panelPosition && createPortal(
+        <div
+          ref={panelRef}
+          style={{
+            position: "fixed",
+            top: panelPosition.top,
+            left: panelPosition.left,
+            width: panelPosition.width,
+            maxHeight: panelPosition.maxHeight,
+          }}
+          className="animate-toast z-[100] overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
+        >
           {loggedIn && (
             <div>
               <p className="border-b border-black/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-muted">For you</p>
@@ -105,7 +161,8 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
             ))}
           </ul>
           <Link href="/announcements" onClick={() => setOpen(false)} className="block bg-paper py-2.5 text-center text-xs font-bold text-brand hover:bg-gold/20">View all announcements →</Link>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
