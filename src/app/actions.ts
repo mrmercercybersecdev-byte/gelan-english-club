@@ -35,23 +35,23 @@ export async function rsvpAction(_prev: FormState, fd: FormData): Promise<FormSt
     return { ok: false, message: "This event has already taken place." };
   }
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(rsvps)
-    .where(eq(rsvps.eventId, eventId));
-  if (count >= event.capacity) {
-    return { ok: false, message: "Sorry — this event is fully booked." };
-  }
-
-  const existing = await db
-    .select({ id: rsvps.id })
-    .from(rsvps)
-    .where(and(eq(rsvps.eventId, eventId), eq(rsvps.email, email)));
-  if (existing.length) {
-    return { ok: false, message: "You're already on the list for this event. See you there!" };
-  }
-
-  await db.insert(rsvps).values({ eventId, name, email, note: note || null });
+  const result = await db.transaction(async (tx) => {
+    // Lock the event row while checking capacity so concurrent requests cannot overbook it.
+    const [lockedEvent] = await tx.select({ id: events.id, capacity: events.capacity })
+      .from(events).where(eq(events.id, eventId)).for("update");
+    if (!lockedEvent) return "missing" as const;
+    const existing = await tx.select({ id: rsvps.id }).from(rsvps)
+      .where(and(eq(rsvps.eventId, eventId), eq(rsvps.email, email)));
+    if (existing.length) return "duplicate" as const;
+    const [{ count }] = await tx.select({ count: sql<number>`count(*)::int` }).from(rsvps)
+      .where(eq(rsvps.eventId, eventId));
+    if (count >= lockedEvent.capacity) return "full" as const;
+    await tx.insert(rsvps).values({ eventId, name, email, note: note || null });
+    return "created" as const;
+  });
+  if (result === "missing") return { ok: false, message: "This event no longer exists." };
+  if (result === "duplicate") return { ok: false, message: "You're already on the list for this event. See you there!" };
+  if (result === "full") return { ok: false, message: "Sorry — this event is fully booked." };
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/events");
   return { ok: true, message: `You're in, ${name.split(" ")[0]}! We've saved your spot.` };

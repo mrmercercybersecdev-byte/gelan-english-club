@@ -66,12 +66,12 @@ export async function signupAction(_prev: FormState, fd: FormData): Promise<Form
 }
 
 export async function loginUserAction(_prev: FormState, fd: FormData): Promise<FormState> {
-  const username = String(fd.get("username") ?? "").trim().toLowerCase();
+  const username = String(fd.get("username") ?? "").trim().toLowerCase().slice(0, 32);
   const limited = await limitAction("login", username);
   if (limited) return { ok: false, message: limited };
   const password = String(fd.get("password") ?? "");
   const [u] = await db.select().from(users).where(eq(users.username, username));
-  if (!u || !verifyPassword(password, u.passwordHash)) {
+  if (!u || password.length > 200 || !verifyPassword(password, u.passwordHash)) {
     return { ok: false, message: "Wrong username or password." };
   }
   if (u.banned) return { ok: false, message: "This account has been suspended." };
