@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     background_color: "#fbf7f0",
-    theme_color: "#b8322a",
-    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+    theme_color: "#061435",
+    icons: [{ src: "/images/gelan-english-club-logo.jpeg", sizes: "any", type: "image/jpeg" }],
   };
 }

@@ -74,7 +74,7 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
         {badge > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">{badge > 9 ? "9+" : badge}</span>}
       </button>
       {open && (
-        <div className="animate-toast absolute right-0 mt-2 w-[340px] max-w-[90vw] overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
+        <div className="animate-toast fixed left-3 right-3 top-[4.5rem] z-[60] w-auto overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:z-auto sm:mt-2 sm:w-[340px] sm:max-w-[90vw]">
           {loggedIn && (
             <div>
               <p className="border-b border-black/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-muted">For you</p>
@@ -98,7 +98,7 @@ export default function NotificationBell({ loggedIn }: { loggedIn: boolean }) {
               <li key={a.id}>
                 <Link href={`/announcements#a-${a.id}`} onClick={() => setOpen(false)} className={`flex items-start gap-2 px-4 py-2.5 text-sm hover:bg-paper ${a.id > lastSeenAnn ? "bg-sky-50" : ""}`}>
                   {a.pinned && <span>📌</span>}
-                  <span className="flex-1 font-medium">{a.title}</span>
+                  <span className="min-w-0 flex-1 break-words font-medium">{a.title}</span>
                   <span className="text-[10px] text-muted">{ago(a.createdAt)}</span>
                 </Link>
               </li>

@@ -20,6 +20,10 @@ export const viewport: Viewport = { themeColor: "#147d75", width: "device-width"
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   applicationName: "Gelan English Club",
+  icons: {
+    icon: [{ url: "/images/gelan-english-club-logo.jpeg", sizes: "1248x1248", type: "image/jpeg" }],
+    apple: [{ url: "/images/gelan-english-club-logo.jpeg", sizes: "1248x1248", type: "image/jpeg" }],
+  },
   openGraph: {
     type: "website",
     siteName: "Gelan English Club",
