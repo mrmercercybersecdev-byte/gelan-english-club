@@ -1,8 +1,5 @@
 import { cookies } from "next/headers";
-import { createHash, randomBytes, timingSafeEqual } from "crypto";
-import { and, eq, gt, lt } from "drizzle-orm";
-import { db } from "@/db";
-import { adminSessions } from "@/db/schema";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { getCurrentUser } from "./session";
 import { cookieSecure } from "./security";
 
@@ -30,36 +27,36 @@ function adminCookieOptions() {
 }
 
 export async function createAdminSession() {
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
-  const tokenHash = createHash("sha256").update(token).digest("hex");
-  await db.insert(adminSessions).values({ tokenHash, expiresAt });
-  await db.delete(adminSessions).where(lt(adminSessions.expiresAt, new Date()));
+  const password = adminPassword();
+  if (!password) throw new Error("Organiser password is not configured.");
+  const expiresAtSeconds = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
+  const payload = `${expiresAtSeconds}.${randomBytes(16).toString("base64url")}`;
+  const key = createHash("sha256").update("gelan-organiser-cookie-v1:").update(password).digest();
+  const signature = createHmac("sha256", key).update(payload).digest("base64url");
   const store = await cookies();
-  store.set(ADMIN_COOKIE, token, { ...adminCookieOptions(), expires: expiresAt });
+  store.set(ADMIN_COOKIE, `${payload}.${signature}`, {
+    ...adminCookieOptions(),
+    expires: new Date(expiresAtSeconds * 1000),
+  });
 }
 
 export async function destroyAdminSession() {
   const store = await cookies();
-  const token = store.get(ADMIN_COOKIE)?.value;
-  if (token) {
-    const tokenHash = createHash("sha256").update(token).digest("hex");
-    await db.delete(adminSessions).where(eq(adminSessions.tokenHash, tokenHash));
-  }
   store.set(ADMIN_COOKIE, "", { ...adminCookieOptions(), maxAge: 0 });
 }
 
 export async function isAdmin() {
+  const password = adminPassword();
+  if (!password) return false;
   const store = await cookies();
   const token = store.get(ADMIN_COOKIE)?.value;
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return false;
-  const tokenHash = createHash("sha256").update(token).digest("hex");
-  const [session] = await db
-    .select({ tokenHash: adminSessions.tokenHash })
-    .from(adminSessions)
-    .where(and(eq(adminSessions.tokenHash, tokenHash), gt(adminSessions.expiresAt, new Date())))
-    .limit(1);
-  return Boolean(session);
+  const match = token?.match(/^(\d{10})\.([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/);
+  if (!match || Number(match[1]) <= Math.floor(Date.now() / 1000)) return false;
+  const payload = `${match[1]}.${match[2]}`;
+  const key = createHash("sha256").update("gelan-organiser-cookie-v1:").update(password).digest();
+  const expected = createHmac("sha256", key).update(payload).digest();
+  const actual = Buffer.from(match[3], "base64url");
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
 export async function isContentManager() {

@@ -1,19 +1,11 @@
-import { generateAuthenticationOptions, generateRegistrationOptions } from "@simplewebauthn/server";
-import { db } from "@/db";
-import { adminPasskeys } from "@/db/schema";
-import { adminPassword, createAdminSession, isAdmin, verifyAdminPassword } from "@/lib/auth";
-import { limitAdminLogin } from "@/lib/admin-login-limit";
-import { ORGANISER_WEBAUTHN_USER_ID, parseTransports, saveAdminChallenge, webAuthnConfig, isTrustedOrigin } from "@/lib/admin-passkeys";
+import { adminPassword, createAdminSession, verifyAdminPassword } from "@/lib/auth";
+import { isTrustedOrigin } from "@/lib/admin-passkeys";
 import { limitRequest, logError, logSecurityEvent, sameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 function jsonError(message: string, status: number) {
   return Response.json({ error: message }, { status });
-}
-
-function isMissingSchema(error: unknown) {
-  return typeof error === "object" && error !== null && "code" in error && error.code === "42P01";
 }
 
 export async function POST(request: Request) {
@@ -25,22 +17,8 @@ export async function POST(request: Request) {
   }
 }
 
-async function loadPasskeys() {
-  try {
-    return await db.select().from(adminPasskeys);
-  } catch (error) {
-    if (isMissingSchema(error)) {
-      logError("admin-passkey.schema", error);
-      throw Object.assign(new Error("Passkey tables are missing. Run the database schema update, then try again."), { status: 503 });
-    }
-    throw error;
-  }
-}
-
 async function handleOptions(request: Request) {
   if (!sameOrigin(request) || !isTrustedOrigin(request)) return jsonError("This sign-in page origin is not allowed. Open the site on its HTTPS domain and try again.", 403);
-  const persistentLimit = await limitAdminLogin(request);
-  if (persistentLimit) return persistentLimit;
   const limited = limitRequest(request, "admin", "passkey-options");
   if (limited) return limited;
 
@@ -64,9 +42,6 @@ async function handleOptions(request: Request) {
     await createAdminSession();
   } catch (error) {
     logError("admin-session", error);
-    if (isMissingSchema(error)) {
-      return jsonError("Organiser session storage is not ready. Apply the latest database schema to Neon, then try again.", 503);
-    }
     return jsonError("Unable to create organiser session.", 500);
   }
   logSecurityEvent("admin-passkey", "password", "success");
