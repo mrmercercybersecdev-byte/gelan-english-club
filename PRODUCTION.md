@@ -34,16 +34,23 @@ Health check: `GET /api/health` → `200 {"ok":true,...}` or `503` when the DB i
 1. Push the project to GitHub, import the repository in Vercel, and keep the detected Next.js framework settings. Vercel runs `npm ci` and `npm run build`; it manages the production runtime, so do not set `npm run start` as a deployment command.
 2. Connect a managed PostgreSQL provider such as Neon. Set `DATABASE_URL` to its pooled URL and, if provided, `DATABASE_URL_UNPOOLED` to its direct URL.
 3. Add `ADMIN_PASSWORD`, `SITE_URL`, `SEED_DEMO_DATA=false`, `FRAME_ANCESTORS='self'` and `DB_POOL_MAX=1` in Vercel Project Settings → Environment Variables. Gemini or Groq API keys can be saved in Admin → AI settings; they are encrypted using `ADMIN_PASSWORD`. Changing that password means you must save the provider key again. `OPENAI_API_KEY` remains an optional fallback. Set database variables for every environment you build (Production and Preview); use a separate database for Preview.
-4. Apply the schema once before the first production deployment, and again when the schema changes. Back up the database first. Link the project with the Vercel CLI, pull Production variables into the ignored local `.env`, then run `npx drizzle-kit push`. The Drizzle config prefers `DATABASE_URL_UNPOOLED` for this step. Never commit `.env`.
+4. Apply the schema once before the first production deployment, and again when the schema changes. Back up the database first. Link the project with the Vercel CLI, pull Production variables into the ignored local `.env`, then run `npx drizzle-kit push`. The Drizzle config prefers `DATABASE_URL_UNPOOLED` for this step. The organiser passkey update adds three tables, so push the schema before deploying that code. Never commit `.env`.
 5. Deploy. Set `SITE_URL` to the final HTTPS domain assigned by Vercel (or your custom domain), then redeploy so sitemap and social metadata use the canonical URL.
 
 For Google sign-in, create a Google OAuth Web application client. Add `https://YOUR-DOMAIN/api/auth/google/callback` as an authorised redirect URI, then set the client ID and secret in Vercel. Put trusted leader and teacher email addresses in the corresponding allowlist variables. Never allow users to choose these roles during sign-up.
+
+### Organiser passkey setup and recovery
+
+After the schema is applied and the deployment is live, open `/admin` on the final HTTPS domain and sign in with `ADMIN_PASSWORD`. On the first sign-in, the browser asks to create a passkey; complete this setup yourself immediately. Subsequent sign-ins require both the password and a passkey. Passkeys can prompt for Face ID, Windows Hello, fingerprint, or the device PIN; biometric information remains on the device and is not sent to the website. Register a second trusted device/passkey from the dashboard before relying on this login.
+
+Passkeys are bound to the domain. Before changing the production domain, visit the old domain and register a passkey on the new domain while the old domain still works. If every passkey is lost, restore access by removing the rows from `admin_passkeys` in the database; the next password sign-in can bootstrap a new passkey. Treat that as a recovery operation and retain a database backup.
 
 Vercel functions are serverless and may run in separate instances. This app currently keeps rate-limit counters, chat presence and live-room presence in process memory; these features are not shared reliably between instances. Move them to shared storage such as Redis before relying on global rate limits or consistent presence/live-room state.
 
 ## 5. What's hardened
 - **Security headers**: CSP, HSTS (prod), nosniff, Referrer-Policy, Permissions-Policy (camera/mic limited to self), no `X-Powered-By`.
 - **Auth**: scrypt password hashing, 30-day httpOnly session cookies (HTTPS: `Secure; SameSite=None; Partitioned` so sessions also work when embedded; HTTP: `SameSite=Lax`), expired sessions cleaned up automatically, 8-char minimum passwords.
+- **Organiser access**: the dashboard requires the organiser password and a registered WebAuthn passkey with user verification. The first successful password sign-in registers the first passkey; do this yourself immediately after deployment. Device biometrics stay on the device. Keep a second trusted passkey/device registered. Removing a passkey requires the organiser password and revokes existing organiser sessions.
 - **Rate limiting**: login, sign-up, AI tutor, chat, uploads, forms, games and meeting signalling are all rate-limited per IP/user.
 - **CSRF**: SameSite cookies + Origin checks on JSON APIs; Server Actions have built-in origin protection.
 - **Uploads**: file type detected from magic bytes (not the client's claim), size capped, filenames sanitised, served only to the owner/admins with `Content-Security-Policy: sandbox` and `nosniff`.

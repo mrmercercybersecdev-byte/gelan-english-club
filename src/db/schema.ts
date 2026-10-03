@@ -103,6 +103,37 @@ export const sessions = pgTable(
   (t) => [index("sessions_user_idx").on(t.userId), index("sessions_exp_idx").on(t.expiresAt)],
 );
 
+export const adminPasskeys = pgTable("admin_passkeys", {
+  credentialId: varchar("credential_id", { length: 1024 }).primaryKey(),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  transports: text("transports").notNull().default("[]"),
+  deviceType: varchar("device_type", { length: 20 }).notNull(),
+  backedUp: boolean("backed_up").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const adminSessions = pgTable(
+  "admin_sessions",
+  {
+    tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("admin_sessions_exp_idx").on(t.expiresAt)],
+);
+
+export const adminPasskeyChallenges = pgTable(
+  "admin_passkey_challenges",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    challenge: varchar("challenge", { length: 256 }).notNull(),
+    purpose: varchar("purpose", { length: 20 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("admin_passkey_challenges_exp_idx").on(t.expiresAt)],
+);
+
 export const auditLogs = pgTable(
   "audit_logs",
   {

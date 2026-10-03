@@ -2,12 +2,11 @@
 
 import { db } from "@/db";
 import { events, members, messages, posts, rsvps } from "@/db/schema";
-import { ADMIN_COOKIE, adminPassword, adminToken, isAdmin } from "@/lib/auth";
+import { destroyAdminSession, isAdmin } from "@/lib/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { authCookieOptions, limitAction } from "@/lib/security";
+import { limitAction } from "@/lib/security";
 
 export type FormState = { ok: boolean; message: string } | null;
 
@@ -140,24 +139,8 @@ export async function likePostAction(id: number) {
 }
 
 /* ---------- Admin ---------- */
-export async function loginAction(_prev: FormState, fd: FormData): Promise<FormState> {
-  const limited = await limitAction("login", "admin");
-  if (limited) return { ok: false, message: limited };
-  const password = String(fd.get("password") ?? "");
-  if (!adminPassword()) {
-    return { ok: false, message: "Organiser password login is not configured." };
-  }
-  if (password !== adminPassword()) {
-    return { ok: false, message: "Incorrect password." };
-  }
-  const store = await cookies();
-  store.set(ADMIN_COOKIE, adminToken(), { ...authCookieOptions(), maxAge: 60 * 60 * 8 });
-  redirect("/admin");
-}
-
 export async function logoutAction() {
-  const store = await cookies();
-  store.set(ADMIN_COOKIE, "", { ...authCookieOptions(), maxAge: 0 });
+  await destroyAdminSession();
   redirect("/admin");
 }
 
