@@ -52,7 +52,7 @@ export default function LoginForm({ configured = true }: { configured?: boolean 
         </p>
       )}
       <div>
-        <label className="label" htmlFor="password">Admin Password</label>
+        <label className="label" htmlFor="password">Organiser password</label>
         <div className="relative">
           <input
             className="input min-h-12 pr-16"
@@ -76,13 +76,6 @@ export default function LoginForm({ configured = true }: { configured?: boolean 
             {showPassword ? "Hide" : "Show"}
           </button>
         </div>
-        <p className="mt-1 text-[11px] text-muted">Use the unique organiser password stored as <code>ADMIN_PASSWORD</code>.</p>
-      </div>
-      <div className="rounded-xl bg-brand/5 p-4 text-sm text-ink ring-1 ring-brand/15">
-        <p className="font-semibold">Password protection</p>
-        <p className="mt-1 text-muted">
-          Enter the organiser password to sign in. Use the unique organiser password stored as <code className="font-mono text-xs">ADMIN_PASSWORD</code> in the hosting environment.
-        </p>
       </div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       <button className="btn-primary min-h-12 w-full" type="submit" disabled={busy || !configured}>

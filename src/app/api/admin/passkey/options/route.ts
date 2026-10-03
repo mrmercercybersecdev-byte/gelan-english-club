@@ -64,6 +64,9 @@ async function handleOptions(request: Request) {
     await createAdminSession();
   } catch (error) {
     logError("admin-session", error);
+    if (isMissingSchema(error)) {
+      return jsonError("Organiser session storage is not ready. Apply the latest database schema to Neon, then try again.", 503);
+    }
     return jsonError("Unable to create organiser session.", 500);
   }
   logSecurityEvent("admin-passkey", "password", "success");
