@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const audience = typeof body.audience === "string" ? body.audience.trim().slice(0, 120) : "English learners";
     const format = body.format === "page" ? "page" : "blog";
     if (topic.length < 8) return Response.json({ error: "Add a topic or a few notes (at least 8 characters)." }, { status: 400 });
-    if (!(await aiEnabled())) return Response.json({ error: "Configure Gemini or Groq in Admin → AI settings first." }, { status: 503 });
+    if (!(await aiEnabled())) return Response.json({ error: "Configure a server AI provider in Admin → AI settings, or use Draft with this PC's Ollama from the editor." }, { status: 503 });
 
     const systemPrompt = format === "page"
       ? "You are the Gelan English Club's careful website copy helper. Draft concise, welcoming website copy based only on the supplied notes. Return a short heading followed by 1–3 short paragraphs. Do not invent dates, prices, staff, outcomes, statistics, or policies. If a fact is missing, use a clear [organiser: add detail] placeholder. Return only the draft."

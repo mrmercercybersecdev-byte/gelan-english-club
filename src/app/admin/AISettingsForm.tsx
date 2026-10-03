@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import type { FormState } from "../actions";
 import { FormNotice, SubmitButton } from "@/components/FormBits";
 import { clearAiSettingsAction, saveAiSettingsAction } from "./admin-actions";
+import LocalOllamaSettings from "./LocalOllamaSettings";
 
 type Settings = { provider: string; model: string; configured: boolean; savedKey: boolean };
 
@@ -36,6 +37,7 @@ export default function AISettingsForm({ settings }: { settings: { learning?: Se
   }
 
   return (
+    <div className="space-y-6">
     <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
       <form action={action} className="space-y-5 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
         <div>
@@ -79,7 +81,7 @@ export default function AISettingsForm({ settings }: { settings: { learning?: Se
         <div>
           <label className="label" htmlFor="ai-api-key">API key</label>
           <input id="ai-api-key" name="apiKey" type="password" autoComplete="new-password" maxLength={500} placeholder={active.configured ? "Saved securely — leave blank to keep it" : "Paste your provider API key"} className="input" />
-          <p className="mt-1 text-xs text-muted">The key is encrypted before it is stored and is never sent to visitors or shown again. {provider === "ollama" && <>Create an Ollama cloud API key at <a href="https://ollama.com/settings/keys" target="_blank" rel="noreferrer" className="underline">ollama.com</a>.</>}</p>
+          <p className="mt-1 text-xs text-muted">The key is encrypted before it is stored and is never sent to visitors or shown again. {provider === "ollama" && <>This option calls Ollama Cloud from Vercel and needs a cloud key. To use your PC's Ollama sign-in with no API key, configure the local option below.</>}</p>
         </div>
         <FormNotice state={state} />
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -104,6 +106,8 @@ export default function AISettingsForm({ settings }: { settings: { learning?: Se
           </form>
         )}
       </aside>
+    </div>
+    <LocalOllamaSettings />
     </div>
   );
 }

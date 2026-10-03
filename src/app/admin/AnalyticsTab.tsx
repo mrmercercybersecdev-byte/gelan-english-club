@@ -1,6 +1,7 @@
 import { and, desc, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { siteAnalyticsEvents, visitorConsents } from "@/db/schema";
+import AnalyticsSetupButton from "./AnalyticsSetupButton";
 
 type Distribution = { label: string; count: number };
 
@@ -44,6 +45,6 @@ export default async function AnalyticsTab() {
       <p className="rounded-2xl bg-paper p-4 text-xs leading-relaxed text-muted">Product-planning totals include only visitors who opted in. The site stores coarse country and device categories, never raw IP addresses, full user-agent strings, names, email addresses, or account IDs in this analytics system. Visitors can revoke consent from “Privacy choices”; their pseudonymous analytics rows are deleted when they withdraw.</p>
     </div>;
   } catch {
-    return <div className="rounded-2xl bg-amber-50 p-5 text-sm text-amber-950 ring-1 ring-amber-200">Analytics needs its database tables. Run <code>drizzle/0002_consent_analytics.sql</code> in Neon, then reload the dashboard.</div>;
+    return <div className="rounded-2xl bg-amber-50 p-5 text-sm text-amber-950 ring-1 ring-amber-200"><h2 className="font-semibold">Analytics database setup needed</h2><p className="mt-1">The dashboard could not find its analytics tables. Create the missing tables in the connected database to begin recording real consented visits.</p><AnalyticsSetupButton /></div>;
   }
 }

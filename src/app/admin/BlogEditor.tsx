@@ -6,6 +6,7 @@ import { saveBlogPostAction } from "./admin-actions";
 import type { FormState } from "../actions";
 import { FormNotice, SubmitButton } from "@/components/FormBits";
 import Markdown from "@/components/Markdown";
+import { writeWithLocalOllama } from "@/lib/ollama-local";
 
 type Post = { id: number; title: string; excerpt: string; content: string; tags: string; author: string; coverImage: string | null; published: boolean };
 
@@ -21,11 +22,19 @@ export default function BlogEditor({ post }: { post?: Post }) {
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState("");
 
-  async function generateDraft() {
+  async function generateDraft(local = false) {
     if (!topic.trim() || drafting) return;
     setDrafting(true);
     setDraftError("");
     try {
+      if (local) {
+        const draft = await writeWithLocalOllama(topic, "You are the Gelan English Club's educational blog-writing assistant. Write an original, practical, friendly 500–700 word Markdown draft for English learners. Use a clear H1 title, useful H2 sections, examples where helpful, and a short encouraging conclusion. Do not fabricate sources, statistics, dates, staff, outcomes or policies. Return only the draft.");
+        const titleHeading = draft.match(/^#\s+(.+)$/m);
+        if (titleHeading) { setTitle(titleHeading[1].trim()); setContent(draft.replace(titleHeading[0], "").trim()); }
+        else setContent(draft);
+        setPreview(false);
+        return;
+      }
       const response = await fetch("/api/admin/blog-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,9 +79,7 @@ export default function BlogEditor({ post }: { post?: Post }) {
         </div>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input value={topic} onChange={(event) => setTopic(event.target.value)} maxLength={1000} placeholder="Daily topic, audience, or notes…" className="input" />
-          <button type="button" onClick={generateDraft} disabled={drafting || topic.trim().length < 8} className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-50">
-            {drafting ? "Writing…" : "Generate draft"}
-          </button>
+          <div className="flex flex-wrap gap-2"><button type="button" onClick={() => generateDraft(false)} disabled={drafting || topic.trim().length < 8} className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-50">{drafting ? "Writing…" : "Draft with server AI"}</button><button type="button" onClick={() => generateDraft(true)} disabled={drafting || topic.trim().length < 8} className="min-h-11 rounded-full px-4 text-sm font-semibold ring-1 ring-black/15 disabled:opacity-50">Draft with this PC's Ollama</button></div>
         </div>
         {draftError && <p role="alert" className="mt-2 text-sm text-rose-700">{draftError}</p>}
       </section>

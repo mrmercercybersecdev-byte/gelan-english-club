@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveSiteContentAction } from "./admin-actions";
+import { writeWithLocalOllama } from "@/lib/ollama-local";
 
 const ROUTES = ["/", "/about", "/help", "/events", "/announcements", "/blog", "/learn", "/speak", "/meet", "/chat", "/groups", "/games", "/leaderboard", "/join", "/contact", "/submit", "/board"];
 
@@ -14,11 +15,19 @@ export default function PageContentForm({ editing }: { editing?: Content }) {
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState("");
 
-  async function writeWithAi() {
+  async function writeWithAi(local = false) {
     if (topic.trim().length < 8 || drafting) return;
     setDrafting(true);
     setError("");
     try {
+      if (local) {
+        const draft = await writeWithLocalOllama(`Audience: Gelan English Club website visitors\nTopic and notes:\n${topic}`, "You are a careful website copy helper. Draft concise, welcoming website copy based only on supplied notes. Return a short heading followed by 1–3 short paragraphs. Do not invent dates, prices, staff, outcomes, statistics, or policies. Use [organiser: add detail] when a fact is missing.");
+        const lines = draft.split("\n");
+        const heading = lines.findIndex((line) => line.trim());
+        setTitle(heading >= 0 ? lines[heading].replace(/^#+\s*/, "").trim() : "");
+        setBody(lines.filter((_, i) => i !== heading).join("\n").trim());
+        return;
+      }
       const response = await fetch("/api/admin/blog-assistant", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, format: "page", audience: "Gelan English Club website visitors" }),
@@ -51,7 +60,7 @@ export default function PageContentForm({ editing }: { editing?: Content }) {
       <p className="mt-1 text-xs text-muted">Describe the message and audience. Review the draft before saving or publishing.</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={1000} placeholder="Notes about this page content…" className="input" />
-        <button type="button" onClick={writeWithAi} disabled={drafting || topic.trim().length < 8} className="btn-primary shrink-0 disabled:opacity-50">{drafting ? "Writing…" : "Draft with AI"}</button>
+        <div className="flex flex-wrap gap-2"><button type="button" onClick={() => writeWithAi(false)} disabled={drafting || topic.trim().length < 8} className="btn-primary shrink-0 disabled:opacity-50">{drafting ? "Writing…" : "Draft with server AI"}</button><button type="button" onClick={() => writeWithAi(true)} disabled={drafting || topic.trim().length < 8} className="min-h-11 rounded-full px-4 text-sm font-semibold ring-1 ring-black/15 disabled:opacity-50">Draft with this PC's Ollama</button></div>
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-rose-700">{error}</p>}
     </section>
