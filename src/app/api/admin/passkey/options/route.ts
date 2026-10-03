@@ -12,6 +12,10 @@ function jsonError(message: string, status: number) {
   return Response.json({ error: message }, { status });
 }
 
+function isMissingSchema(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "42P01";
+}
+
 export async function POST(request: Request) {
   if (!sameOrigin(request) || !isTrustedOrigin(request)) return jsonError("Request origin is not allowed.", 403);
   const limited = limitRequest(request, "admin", "passkey-options");
@@ -31,7 +35,15 @@ export async function POST(request: Request) {
       logSecurityEvent("admin-passkey", "enrollment_password", "failed");
       return jsonError("Incorrect organiser password.", 401);
     }
-    const currentPasskeys = await db.select().from(adminPasskeys);
+    let currentPasskeys;
+    try {
+      currentPasskeys = await db.select().from(adminPasskeys);
+    } catch (error) {
+      if (isMissingSchema(error)) {
+        return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+      }
+      throw error;
+    }
     const options = await generateRegistrationOptions({
       ...config,
       userName: "club-organiser",
@@ -44,7 +56,14 @@ export async function POST(request: Request) {
         transports: JSON.parse(passkey.transports) as string[],
       })),
     });
-    await saveAdminChallenge(options.challenge, "enroll");
+    try {
+      await saveAdminChallenge(options.challenge, "enroll");
+    } catch (error) {
+      if (isMissingSchema(error)) {
+        return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+      }
+      throw error;
+    }
     return Response.json({ mode: "register", options });
   }
 
@@ -53,7 +72,15 @@ export async function POST(request: Request) {
     return jsonError("Incorrect organiser password.", 401);
   }
 
-  const currentPasskeys = await db.select().from(adminPasskeys);
+  let currentPasskeys;
+  try {
+    currentPasskeys = await db.select().from(adminPasskeys);
+  } catch (error) {
+    if (isMissingSchema(error)) {
+      return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+    }
+    throw error;
+  }
   if (currentPasskeys.length === 0) {
     const options = await generateRegistrationOptions({
       ...config,
@@ -63,7 +90,14 @@ export async function POST(request: Request) {
       attestationType: "none",
       authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
     });
-    await saveAdminChallenge(options.challenge, "bootstrap");
+    try {
+      await saveAdminChallenge(options.challenge, "bootstrap");
+    } catch (error) {
+      if (isMissingSchema(error)) {
+        return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+      }
+      throw error;
+    }
     return Response.json({ mode: "register", options });
   }
 
@@ -75,7 +109,13 @@ export async function POST(request: Request) {
     })),
     userVerification: "required",
   });
-  await saveAdminChallenge(options.challenge, "login");
+  try {
+    await saveAdminChallenge(options.challenge, "login");
+  } catch (error) {
+    if (isMissingSchema(error)) {
+      return jsonError("Passkey setup is not ready: the site database schema must be updated by the administrator.", 503);
+    }
+    throw error;
+  }
   return Response.json({ mode: "authenticate", options });
 }
-

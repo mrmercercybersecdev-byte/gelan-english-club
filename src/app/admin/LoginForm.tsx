@@ -12,13 +12,14 @@ type OptionsResponse =
   | { mode: "authenticate"; options: PublicKeyCredentialRequestOptionsJSON };
 
 export default function LoginForm({ showHint = true }: { showHint?: boolean }) {
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "checking" | "device" | "verifying">("idle");
   const [error, setError] = useState("");
+  const busy = phase !== "idle";
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
-    setBusy(true);
+    setPhase("checking");
     setError("");
     const password = String(new FormData(event.currentTarget).get("password") ?? "");
     try {
@@ -34,12 +35,15 @@ export default function LoginForm({ showHint = true }: { showHint?: boolean }) {
       let mode: "register" | "authenticate";
       if (optionsData.mode === "register") {
         mode = "register";
+        setPhase("device");
         response = await startRegistration({ optionsJSON: optionsData.options });
       } else {
         mode = "authenticate";
+        setPhase("device");
         response = await startAuthentication({ optionsJSON: optionsData.options });
       }
 
+      setPhase("verifying");
       const verifyResponse = await fetch("/api/admin/passkey/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,7 +54,7 @@ export default function LoginForm({ showHint = true }: { showHint?: boolean }) {
       window.location.assign("/admin");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Organiser sign-in failed.");
-      setBusy(false);
+      setPhase("idle");
     }
   }
 
@@ -72,14 +76,20 @@ export default function LoginForm({ showHint = true }: { showHint?: boolean }) {
         />
         {showHint && <p className="mt-1 text-[11px] text-muted">Use your unique, strong organiser password.</p>}
       </div>
-      <p className="text-sm text-muted">
-        {showHint
-          ? "The first sign-in will register this device as your passkey. Later sign-ins require both your password and passkey."
-          : "Sign in with your organiser password and registered passkey."}
-      </p>
+      <div className="rounded-xl bg-brand/5 p-4 text-sm text-ink ring-1 ring-brand/15">
+        <p className="font-semibold">Password + device verification</p>
+        <p className="mt-1 text-muted">
+          {showHint
+            ? "On your first sign-in, after checking your password, your browser will ask you to create a passkey for this device. On later sign-ins, it will ask you to verify with that passkey."
+            : "After checking your password, your browser will ask you to register a passkey if this is the first setup, or verify with your passkey if one is already registered."}
+        </p>
+        <p className="mt-2 text-xs text-muted">Your device may use Face ID, Windows Hello, fingerprint, or its screen-lock PIN. The website never receives biometric data.</p>
+      </div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       <button className="btn-primary w-full" type="submit" disabled={busy}>
-        {busy ? "Verifying…" : "Continue with password and passkey"}
+        {phase === "checking" ? "Checking password…" :
+          phase === "device" ? "Waiting for device verification…" :
+            phase === "verifying" ? "Verifying passkey…" : "Continue"}
       </button>
       {showHint && (
         <div className="space-y-2 rounded-xl bg-amber-50 p-4 text-xs text-amber-900 ring-1 ring-amber-200">
