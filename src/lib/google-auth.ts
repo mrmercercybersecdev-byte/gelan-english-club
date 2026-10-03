@@ -107,7 +107,7 @@ export async function signInWithGoogle(profile: GoogleProfile) {
   const byEmail = existing[0] ?? (await db.select().from(users).where(eq(users.email, email)))[0];
   if (byEmail) {
     const nextRole = byEmail.role === "admin" || byEmail.role === "leader" || byEmail.role === "teacher" ? byEmail.role : role;
-    const [updated] = await db.update(users).set({ googleId: profile.sub, email, role: nextRole }).where(eq(users.id, byEmail.id)).returning();
+    const [updated] = await db.update(users).set({ googleId: profile.sub, email, emailVerified: true, role: nextRole }).where(eq(users.id, byEmail.id)).returning();
     await createSession(updated.id);
     return updated;
   }
@@ -116,6 +116,7 @@ export async function signInWithGoogle(profile: GoogleProfile) {
   const [created] = await db.insert(users).values({
     username,
     email,
+    emailVerified: true,
     googleId: profile.sub,
     displayName: profile.name?.trim().slice(0, 60) || username,
     passwordHash: hashPassword(randomBytes(32).toString("hex")),
