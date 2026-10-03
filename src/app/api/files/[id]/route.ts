@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       "Content-Disposition": `${download ? "attachment" : "inline"}; filename*=UTF-8''${encoded}`,
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; sandbox",
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "private, no-store",
       ETag: `"${meta.sha256}"`,
     },
   });

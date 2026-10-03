@@ -22,6 +22,14 @@ const TOPICS = [
 ];
 const REACTIONS = ["👏", "😂", "❤️", "🎉", "👍", "🤯"];
 
+function createPeerId() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 type Remote = { id: string; name: string; stream: MediaStream; mic: boolean; cam: boolean; hand: boolean };
 type ChatLine = { id: number; from: string; text: string; system?: boolean; me?: boolean };
 type Signal = { id: number; fromPeer: string; toPeer: string; kind: string; payload: string };
@@ -54,6 +62,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
   const [name, setName] = useState(defaultName);
   const [local, setLocal] = useState<MediaStream | null>(null);
   const [mediaError, setMediaError] = useState("");
+  const [joinError, setJoinError] = useState("");
   const [mic, setMic] = useState(true);
   const [cam, setCam] = useState(true);
   const [hand, setHand] = useState(false);
@@ -68,6 +77,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
   const [unread, setUnread] = useState(0);
 
   const peerId = useRef<string>("");
+  const peerToken = useRef<string>("");
   const pcs = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIce = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const after = useRef(0);
@@ -79,7 +89,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
   const chatEnd = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    peerId.current = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    peerId.current = createPeerId();
   }, []);
 
   /* ---------- preview media ---------- */
@@ -122,7 +132,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
     await fetch(`/api/meet/${code}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "signal", peerId: peerId.current, to, kind, payload }),
+      body: JSON.stringify({ action: "signal", peerId: peerId.current, peerToken: peerToken.current, to, kind, payload }),
     }).catch(() => {});
   }, [code]);
 
@@ -257,7 +267,11 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
       if (busy || stop) return;
       busy = true;
       try {
-        const res = await fetch(`/api/meet/${code}?peer=${peerId.current}&after=${after.current}`, { cache: "no-store" });
+        const res = await fetch(`/api/meet/${code}?peer=${peerId.current}&after=${after.current}`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${peerToken.current}` },
+        });
+        if (!res.ok) throw new Error("Meeting session expired");
         const data = (await res.json()) as { peers: { id: string; name: string }[]; signals: Signal[] };
         for (const s of data.signals ?? []) {
           after.current = Math.max(after.current, s.id);
@@ -280,7 +294,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
 
   useEffect(() => {
     const onUnload = () => {
-      if (phase === "live") navigator.sendBeacon(`/api/meet/${code}`, new Blob([JSON.stringify({ action: "leave", peerId: peerId.current })], { type: "application/json" }));
+      if (phase === "live") navigator.sendBeacon(`/api/meet/${code}`, new Blob([JSON.stringify({ action: "leave", peerId: peerId.current, peerToken: peerToken.current })], { type: "application/json" }));
     };
     window.addEventListener("beforeunload", onUnload);
     return () => window.removeEventListener("beforeunload", onUnload);
@@ -291,14 +305,28 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
   }, [chat]);
 
   async function join() {
+    if (!peerId.current) peerId.current = createPeerId();
     const n = name.trim() || "Guest";
     stateRef.current.name = n;
-    const res = await fetch(`/api/meet/${code}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "join", peerId: peerId.current, name: n }),
-    });
-    const data = (await res.json()) as { peers: { id: string; name: string }[]; after: number };
+    let res: Response;
+    try {
+      res = await fetch(`/api/meet/${code}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "join", peerId: peerId.current, name: n }),
+      });
+    } catch {
+      setJoinError("Could not reach the meeting. Check your connection and try again.");
+      return;
+    }
+    const data = (await res.json().catch(() => ({}))) as { peers?: { id: string; name: string }[]; after?: number; peerToken?: string; error?: string };
+    if (!res.ok || !data.peerToken) {
+      if (res.status === 409) peerId.current = createPeerId();
+      setJoinError(data.error || "Could not join this meeting. Please try again.");
+      return;
+    }
+    setJoinError("");
+    peerToken.current = data.peerToken;
     after.current = data.after ?? 0;
     setPhase("live");
     setChat([{ id: 0, from: "", text: `Welcome to “${title}”. Share the link to invite others!`, system: true }]);
@@ -313,7 +341,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
   }
 
   async function leave() {
-    await fetch(`/api/meet/${code}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "leave", peerId: peerId.current }) }).catch(() => {});
+    await fetch(`/api/meet/${code}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "leave", peerId: peerId.current, peerToken: peerToken.current }) }).catch(() => {});
     pcs.current.forEach((pc) => pc.close());
     pcs.current.clear();
     localRef.current?.getTracks().forEach((t) => t.stop());
@@ -403,6 +431,7 @@ export default function MeetRoom({ code, title, host, defaultName, loggedIn }: {
           <p className="mt-1 text-muted">Hosted by {host} · <code className="rounded bg-paper px-1.5">{code}</code></p>
           <label className="label mt-6" htmlFor="nm">Your name</label>
           <input id="nm" value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Enter your name" maxLength={60} />
+          {joinError && <p role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{joinError}</p>}
           <button onClick={join} className="btn-primary mt-4 w-full !py-4 text-lg">Join now</button>
           <p className="mt-3 text-xs text-muted">Peer-to-peer video works best with up to ~6 people. {loggedIn ? "+30 XP for joining!" : "Sign in to earn XP."}</p>
         </div>

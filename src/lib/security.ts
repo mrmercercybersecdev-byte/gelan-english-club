@@ -51,6 +51,8 @@ export const LIMITS = {
   game: { max: 30, windowSec: 60 },
   write: { max: 30, windowSec: 60 },
   signal: { max: 900, windowSec: 60 },
+  meetWrite: { max: 90, windowSec: 60 },
+  meetJoin: { max: 12, windowSec: 600 },
 } as const;
 
 export type LimitName = keyof typeof LIMITS;

@@ -2,6 +2,7 @@ import { generateAuthenticationOptions, generateRegistrationOptions } from "@sim
 import { db } from "@/db";
 import { adminPasskeys } from "@/db/schema";
 import { adminPassword, createAdminSession, isAdmin, verifyAdminPassword } from "@/lib/auth";
+import { limitAdminLogin } from "@/lib/admin-login-limit";
 import { ORGANISER_WEBAUTHN_USER_ID, parseTransports, saveAdminChallenge, webAuthnConfig, isTrustedOrigin } from "@/lib/admin-passkeys";
 import { limitRequest, logError, logSecurityEvent, sameOrigin } from "@/lib/security";
 
@@ -38,6 +39,8 @@ async function loadPasskeys() {
 
 async function handleOptions(request: Request) {
   if (!sameOrigin(request) || !isTrustedOrigin(request)) return jsonError("This sign-in page origin is not allowed. Open the site on its HTTPS domain and try again.", 403);
+  const persistentLimit = await limitAdminLogin(request);
+  if (persistentLimit) return persistentLimit;
   const limited = limitRequest(request, "admin", "passkey-options");
   if (limited) return limited;
 

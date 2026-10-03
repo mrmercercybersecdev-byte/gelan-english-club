@@ -106,6 +106,8 @@ export async function updateProfileAction(_prev: FormState, fd: FormData): Promi
 }
 
 export async function createRoomAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  const limited = await limitAction("form", "create-meeting-room");
+  if (limited) return { ok: false, message: limited };
   const user = await getCurrentUser();
   const title = String(fd.get("title") ?? "").trim().slice(0, 120) || "English practice room";
   const hostName = String(fd.get("hostName") ?? user?.displayName ?? "Host").trim().slice(0, 60) || "Host";
