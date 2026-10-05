@@ -49,6 +49,14 @@ export function rankTitle(xp: number) {
   return TITLES[Math.min(TITLES.length - 1, Math.floor((lvl - 1) / 2))];
 }
 
+export const LEVEL_REWARDS = [
+  { level: 2, icon: "💡", name: "Helpful hint", detail: "One clue hint in every new arcade round." },
+  { level: 3, icon: "🧠", name: "Trickier questions", detail: "Medium difficulty unlocks in your games." },
+  { level: 5, icon: "🔥", name: "Expert mode", detail: "Hard questions unlock across the arcade." },
+  { level: 7, icon: "🧭", name: "Double hint", detail: "Get two clues per new arcade round." },
+  { level: 10, icon: "⚡", name: "XP boost", detail: "Earn 50% more XP when you win a game." },
+] as const;
+
 export type Badge = { id: string; icon: string; name: string; desc: string };
 
 export const BADGES: (Badge & { test: (s: BadgeStats) => boolean })[] = [

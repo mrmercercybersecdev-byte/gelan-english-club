@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HANGMAN_WORDS } from "@/lib/games";
+import { HANGMAN_WORDS, difficultyTier } from "@/lib/games";
 import { Confetti, GameShell, Stat, submitScore } from "./shared";
 import Icon from "@/components/Icon";
 
 const MAX_WRONG = 7;
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-export default function Hangman() {
+export default function Hangman({ level = 1 }: { level?: number }) {
   const [entry, setEntry] = useState<(typeof HANGMAN_WORDS)[number] | null>(null);
   const [guessed, setGuessed] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState(false);
@@ -18,12 +18,14 @@ export default function Hangman() {
   const reported = useRef(false);
 
   const newWord = useCallback(() => {
-    setEntry(HANGMAN_WORDS[Math.floor(Math.random() * HANGMAN_WORDS.length)]);
+    const tier = difficultyTier(level);
+    const eligible = HANGMAN_WORDS.filter(({ word }) => tier === 1 ? word.length <= 10 : tier === 2 ? word.length <= 13 : true);
+    setEntry(eligible[Math.floor(Math.random() * eligible.length)]);
     setGuessed(new Set());
     setHint(false);
     setStartAt(Date.now());
     reported.current = false;
-  }, []);
+  }, [level]);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => newWord());
     return () => window.cancelAnimationFrame(frame);
@@ -65,7 +67,7 @@ export default function Hangman() {
   }, [over, won, wrong, word, hint, startAt]);
 
   return (
-    <GameShell title="Hangman" icon="game" gradient="from-emerald-500 via-teal-600 to-cyan-600" stats={<><Stat label="Guesses left" value={Math.max(0, MAX_WRONG - wrong)} /><Stat label="Wins" value={wins} /><Stat label="Streak" value={streak} /></>}>
+    <GameShell title="Hangman" icon="game" gradient="from-emerald-500 via-teal-600 to-cyan-600" stats={<><Stat label="Difficulty" value={difficultyTier(level) === 1 ? "Easy" : difficultyTier(level) === 2 ? "Tricky" : "Expert"} /><Stat label="Guesses left" value={Math.max(0, MAX_WRONG - wrong)} /><Stat label="Wins" value={wins} /><Stat label="Streak" value={streak} /></>}>
       {won && <Confetti />}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-8">
         <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-6" aria-label="Hangman game status">

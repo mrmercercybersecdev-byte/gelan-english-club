@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateCrossword, type Crossword as CW, type Placed } from "@/lib/games";
 import { Confetti, GameShell, Stat, fmtTime, submitScore } from "./shared";
 import Icon from "@/components/Icon";
+import { difficultyTier } from "@/lib/games";
 
 type Dir = "across" | "down";
 const KEYS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 
-export default function Crossword() {
+export default function Crossword({ level = 1 }: { level?: number }) {
   const [seed, setSeed] = useState<number | null>(null);
   const [cw, setCw] = useState<CW | null>(null);
   const [fill, setFill] = useState<string[][]>([]);
@@ -26,7 +27,8 @@ export default function Crossword() {
 
   const newGame = useCallback((s?: number) => {
     const sd = s ?? Math.floor(Math.random() * 1e9);
-    const c = generateCrossword(sd, 10);
+    const tier = difficultyTier(level);
+    const c = generateCrossword(sd, 8 + (tier - 1) * 2, tier);
     setSeed(sd);
     setCw(c);
     setFill(c.grid.map((row) => row.map(() => "")));
@@ -40,7 +42,7 @@ export default function Crossword() {
     setStart(Date.now());
     setNow(Date.now());
     setTimeout(() => boardRef.current?.focus(), 50);
-  }, []);
+  }, [level]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => newGame());
@@ -226,7 +228,7 @@ export default function Crossword() {
       title="Crossword"
       icon="book"
       gradient="from-brand via-emerald-700 to-cyan-800"
-      stats={<><Stat label="Time" value={fmtTime(Math.max(0, elapsed))} /><Stat label="Filled" value={`${Math.round((filled / total) * 100)}%`} /><Stat label="Penalty" value={penalty} /></>}
+      stats={<><Stat label="Difficulty" value={difficultyTier(level) === 1 ? "Easy" : difficultyTier(level) === 2 ? "Tricky" : "Expert"} /><Stat label="Time" value={fmtTime(Math.max(0, elapsed))} /><Stat label="Filled" value={`${Math.round((filled / total) * 100)}%`} /><Stat label="Penalty" value={penalty} /></>}
     >
       {done && modal && <Confetti />}
       {!cw ? (

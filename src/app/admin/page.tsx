@@ -34,6 +34,8 @@ import LoginForm from "./LoginForm";
 import EventForm from "./EventForm";
 import PageContentTab from "./PageContentTab";
 import AnalyticsTab from "./AnalyticsTab";
+import GameReleasePanel from "./GameReleasePanel";
+import { gameSettings } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Organiser dashboard", robots: { index: false } };
@@ -57,6 +59,7 @@ const TABS = [
   ["posts", "💡 Phrase Wall"],
   ["logs", "🛡️ System logs"],
   ["analytics", "📊 Analytics"],
+  ["games", "🎮 Games & unlocks"],
   ["ai", "✨ AI settings"],
 ] as const;
 
@@ -172,6 +175,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "posts" && <PostsTab />}
         {tab === "logs" && <LogsTab query={logq} page={logPage} />}
         {tab === "analytics" && fullAdmin && <AnalyticsTab />}
+        {tab === "games" && fullAdmin && <GameReleaseTab />}
         {tab === "ai" && fullAdmin && <AiSettingsTab />}
       </div>
     </div>
@@ -208,6 +212,17 @@ async function LogsTab({ query, page }: { query: string; page: string }) {
       <div className="flex items-center justify-between text-sm"><span className="text-muted">Page {pageNumber} of {pages}</span><div className="flex gap-2">{pageNumber > 1 && <Link href={`/admin?tab=logs&logq=${encodeURIComponent(q)}&logPage=${pageNumber - 1}`} className="rounded-full bg-white px-4 py-2 font-semibold ring-1 ring-black/10">Previous</Link>}{pageNumber < pages && <Link href={`/admin?tab=logs&logq=${encodeURIComponent(q)}&logPage=${pageNumber + 1}`} className="rounded-full bg-white px-4 py-2 font-semibold ring-1 ring-black/10">Next</Link>}</div></div>
     </div>
   );
+}
+
+async function GameReleaseTab() {
+  let settings: Array<{ gameId: string; published: boolean; minLevel: number }> = [];
+  let initialized = true;
+  try {
+    settings = await db.select({ gameId: gameSettings.gameId, published: gameSettings.published, minLevel: gameSettings.minLevel }).from(gameSettings);
+  } catch {
+    initialized = false;
+  }
+  return <GameReleasePanel initialized={initialized} settings={settings} />;
 }
 
 async function EventsTab() {

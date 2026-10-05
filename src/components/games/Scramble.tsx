@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SCRAMBLE_WORDS, scramble, shuffleWith } from "@/lib/games";
+import { SCRAMBLE_WORDS, difficultyTier, scramble, shuffleWith } from "@/lib/games";
 import { Confetti, GameShell, Stat, submitScore } from "./shared";
 import Icon from "@/components/Icon";
 
 const ROUND = 60;
 
-export default function Scramble() {
+export default function Scramble({ level = 1 }: { level?: number }) {
   const [phase, setPhase] = useState<"idle" | "play" | "over">("idle");
   const [queue, setQueue] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
@@ -45,7 +45,9 @@ export default function Scramble() {
   }, [left, phase, score, solved.length, best]);
 
   function start() {
-    const q = shuffleWith(SCRAMBLE_WORDS, Math.random);
+    const tier = difficultyTier(level);
+    const eligible = SCRAMBLE_WORDS.filter((word) => tier === 1 ? word.length <= 8 : tier === 2 ? word.length <= 11 : true);
+    const q = shuffleWith(eligible, Math.random);
     setQueue(q);
     setIdx(0);
     setShown(scramble(q[0]));
@@ -90,7 +92,7 @@ export default function Scramble() {
   const word = queue[idx % queue.length] ?? "";
 
   return (
-    <GameShell title="Word Scramble" icon="sparkles" gradient="from-amber-400 via-orange-500 to-rose-500" stats={<><Stat label="Time" value={left} /><Stat label="Score" value={score} /><Stat label="Streak" value={streak} /><Stat label="Best" value={best} /></>}>
+    <GameShell title="Word Scramble" icon="sparkles" gradient="from-amber-400 via-orange-500 to-rose-500" stats={<><Stat label="Difficulty" value={difficultyTier(level) === 1 ? "Easy" : difficultyTier(level) === 2 ? "Tricky" : "Expert"} /><Stat label="Time" value={left} /><Stat label="Score" value={score} /><Stat label="Streak" value={streak} /><Stat label="Best" value={best} /></>}>
       {phase === "over" && score > best - 1 && score > 0 && <Confetti />}
       <div className="mx-auto max-w-2xl">
         {phase === "idle" && (

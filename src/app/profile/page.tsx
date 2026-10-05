@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { users, xpLog } from "@/db/schema";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/session";
-import { ACTIVITIES, BADGES, earnedBadges, levelProgress, rankTitle } from "@/lib/xp";
+import { ACTIVITIES, BADGES, LEVEL_REWARDS, earnedBadges, levelProgress, rankTitle } from "@/lib/xp";
 import { timeAgo } from "@/lib/format";
 import { Avatar } from "@/components/SiteHeader";
 import ProfileForm from "./ProfileForm";
@@ -57,7 +57,7 @@ export default async function ProfilePage() {
                 <circle cx="60" cy="60" r={R} fill="none" stroke="url(#g)" strokeWidth="8" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - prog.pct / 100)} />
                 <defs><linearGradient id="g"><stop offset="0" stopColor="#d9a441" /><stop offset="1" stopColor="#f87171" /></linearGradient></defs>
               </svg>
-              <div className="absolute inset-3 grid place-items-center"><Avatar name={user.displayName} color={user.avatarColor} size={100} /></div>
+              <div className="absolute inset-3 grid place-items-center"><Avatar name={user.displayName} color={user.avatarColor} size={100} src={user.avatarUrl} /></div>
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-gold px-3 py-0.5 text-xs font-bold text-ink">LV {prog.level}</span>
             </div>
             <h1 className="relative mt-5 font-display text-3xl font-bold">{user.displayName}</h1>
@@ -73,11 +73,18 @@ export default async function ProfilePage() {
           </div>
           <div className="rounded-3xl bg-white p-6 ring-1 ring-black/5">
             <h2 className="font-display text-xl font-bold">Edit profile</h2>
-            <ProfileForm displayName={user.displayName} bio={user.bio ?? ""} country={user.country ?? ""} avatarColor={user.avatarColor} />
+            <ProfileForm displayName={user.displayName} bio={user.bio ?? ""} country={user.country ?? ""} avatarColor={user.avatarColor} avatarUrl={user.avatarUrl} />
           </div>
         </aside>
 
         <div className="space-y-6">
+          <Reveal>
+            <section className="rounded-3xl bg-white p-6 ring-1 ring-black/5">
+              <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-widest text-brand">Keep levelling up</p><h2 className="mt-1 font-display text-2xl font-bold">Your next unlocks</h2></div><span className="text-sm font-semibold text-muted">Level {prog.level}</span></div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">{LEVEL_REWARDS.map((reward) => { const unlocked = prog.level >= reward.level; return <article key={reward.level} className={`rounded-2xl p-4 ${unlocked ? "bg-emerald-50 ring-1 ring-emerald-200" : "bg-paper"}`}><div className="flex items-center gap-3"><span className="text-2xl">{reward.icon}</span><div><p className="font-semibold">{reward.name}</p><p className="text-xs text-muted">{reward.detail}</p></div><span className="ml-auto whitespace-nowrap rounded-full bg-white px-2 py-1 text-[11px] font-bold">{unlocked ? "Unlocked" : `Level ${reward.level}`}</span></div></article>; })}</div>
+              <p className="mt-3 text-xs text-muted">New games may also have organiser-set level requirements. Sign in to save your progress and unlock them.</p>
+            </section>
+          </Reveal>
           <Reveal>
             <div className="rounded-3xl bg-white p-6 ring-1 ring-black/5">
               <div className="flex items-center justify-between">

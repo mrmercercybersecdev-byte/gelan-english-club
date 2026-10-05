@@ -33,13 +33,13 @@ const MORE = [
   { href: "/contact-developer", label: "Contact developer" },
 ];
 
-export function Avatar({ name, color, size = 32 }: { name: string; color: string; size?: number }) {
+export function Avatar({ name, color, size = 32, src }: { name: string; color: string; size?: number; src?: string | null }) {
   return (
     <span
       className="grid shrink-0 place-items-center rounded-full font-bold text-white shadow-sm"
       style={{ background: color, width: size, height: size, fontSize: size * 0.42 }}
     >
-      {name.charAt(0).toUpperCase()}
+      {src ? <Image src={src} alt="" width={size} height={size} unoptimized className="h-full w-full rounded-full object-cover" /> : name.charAt(0).toUpperCase()}
     </span>
   );
 }
@@ -131,7 +131,7 @@ export default function SiteHeader({ user }: { user: PublicUser | null }) {
           {user ? (
             <div className="relative" ref={menuRef}>
               <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-2 ring-1 ring-black/10 hover:ring-black/20 sm:pr-3">
-                <Avatar name={user.displayName} color={user.avatarColor} size={28} />
+                <Avatar name={user.displayName} color={user.avatarColor} size={28} src={user.avatarUrl} />
                 <span className="hidden text-left text-xs leading-tight sm:block">
                   <span className="block font-semibold">{user.displayName}</span>
                   <span className="block text-muted">Lv {levelFromXp(user.xp)} · {user.xp} XP{user.streak ? ` · ${user.streak} day streak` : ""}</span>

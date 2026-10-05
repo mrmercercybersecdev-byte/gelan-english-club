@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/session";
 import { awardXp } from "@/lib/award";
 import { limitRequest, sameOrigin } from "@/lib/security";
 import { GAMES } from "@/lib/games";
+import { getGameAvailabilityById } from "@/lib/game-settings";
+import { levelFromXp, xpForLevel } from "@/lib/xp";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +20,15 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { game?: string; score?: number; timeMs?: number; won?: boolean; meta?: string };
   const game = GAMES.find((g) => g.id === body.game);
   if (!game) return Response.json({ error: "Unknown game" }, { status: 400 });
+  const availability = await getGameAvailabilityById(game.id);
+  if (!availability?.published) return Response.json({ error: "This game has not been released." }, { status: 403 });
+  if (levelFromXp(user.xp) < availability.minLevel) return Response.json({ error: `Reach level ${availability.minLevel} to play this game.` }, { status: 403 });
   const score = Math.max(0, Math.min(game.maxScore, Math.round(Number(body.score) || 0)));
   const timeMs = Math.max(0, Math.min(3_600_000, Math.round(Number(body.timeMs) || 0)));
   // plausibility: reject impossibly fast wins
   if (body.won && timeMs > 0 && timeMs < game.minWinMs) return Response.json({ error: "Implausible result" }, { status: 400 });
 
   await db.insert(gameScores).values({ userId: user.id, game: game.id, score, timeMs, meta: String(body.meta ?? "").slice(0, 120) || null });
-  const xp = body.won ? await awardXp(user.id, "game_win", game.id) : null;
+  const xp = body.won ? await awardXp(user.id, "game_win", game.id, user.xp >= xpForLevel(10) ? 1.5 : 1) : null;
   return Response.json({ saved: true, loggedIn: true, xp });
 }

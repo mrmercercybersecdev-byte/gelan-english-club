@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { cache } from "react";
 import { db } from "@/db";
-import { sessions, users, type User } from "@/db/schema";
+import { profileAvatars, sessions, users, type User } from "@/db/schema";
 import { and, eq, gt, lt } from "drizzle-orm";
 import { authCookieOptions } from "./security";
 
@@ -39,7 +39,16 @@ export async function destroySession() {
   store.set(SESSION_COOKIE, "", { ...authCookieOptions(), maxAge: 0 });
 }
 
-export const getCurrentUser = cache(async (): Promise<User | null> => {
+export async function getProfileAvatarUrl(userId: number) {
+  try {
+    const [avatar] = await db.select({ updatedAt: profileAvatars.updatedAt }).from(profileAvatars).where(eq(profileAvatars.userId, userId)).limit(1);
+    return avatar ? `/api/profile-avatar/${userId}?v=${avatar.updatedAt.getTime()}` : null;
+  } catch { return null; }
+}
+
+export type CurrentUser = User & { avatarUrl: string | null };
+
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -50,20 +59,18 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
     .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())));
   const u = rows[0]?.user ?? null;
   if (!u || u.banned) return null;
-  return u;
+  return { ...u, avatarUrl: await getProfileAvatarUrl(u.id) };
 });
 
-export type PublicUser = Pick<
-  User,
-  "id" | "username" | "displayName" | "avatarColor" | "xp" | "streak" | "role" | "country" | "level"
->;
+export type PublicUser = Pick<User, "id" | "username" | "displayName" | "avatarColor" | "xp" | "streak" | "role" | "country" | "level"> & { avatarUrl: string | null };
 
-export function toPublic(u: User): PublicUser {
+export function toPublic(u: CurrentUser): PublicUser {
   return {
     id: u.id,
     username: u.username,
     displayName: u.displayName,
     avatarColor: u.avatarColor,
+    avatarUrl: u.avatarUrl,
     xp: u.xp,
     streak: u.streak,
     role: u.role,

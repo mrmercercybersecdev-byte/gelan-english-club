@@ -400,6 +400,13 @@ export const submissionFiles = pgTable("submission_files", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const profileAvatars = pgTable("profile_avatars", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  mime: varchar("mime", { length: 30 }).notNull().default("image/jpeg"),
+  data: bytea("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const submissions = pgTable(
   "submissions",
   {
@@ -489,6 +496,13 @@ export const gameScores = pgTable(
   },
   (t) => [index("game_scores_game_idx").on(t.game, t.score)],
 );
+
+export const gameSettings = pgTable("game_settings", {
+  gameId: varchar("game_id", { length: 40 }).primaryKey(),
+  published: boolean("published").notNull().default(false),
+  minLevel: integer("min_level").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export type Announcement = typeof announcements.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;

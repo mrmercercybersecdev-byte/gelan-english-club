@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TWISTERS } from "@/lib/games";
+import { TWISTERS, difficultyTier } from "@/lib/games";
 import { Confetti, GameShell, Stat, submitScore } from "./shared";
 import Icon from "@/components/Icon";
 
-export default function TwisterRace() {
+export default function TwisterRace({ level = 1 }: { level?: number }) {
   const [target, setTarget] = useState("");
   const [typed, setTyped] = useState("");
   const [startAt, setStartAt] = useState<number | null>(null);
@@ -15,8 +15,10 @@ export default function TwisterRace() {
   const input = useRef<HTMLTextAreaElement>(null);
 
   const pick = () => {
-    let t = TWISTERS[Math.floor(Math.random() * TWISTERS.length)];
-    if (t === target) t = TWISTERS[(TWISTERS.indexOf(t) + 1) % TWISTERS.length];
+    const tier = difficultyTier(level);
+    const eligible = TWISTERS.filter((_, index) => tier === 1 ? index < 8 : tier === 2 ? index < 16 : true);
+    let t = eligible[Math.floor(Math.random() * eligible.length)];
+    if (t === target) t = eligible[(eligible.indexOf(t) + 1) % eligible.length];
     setTarget(t);
     setTyped("");
     setStartAt(null);
@@ -70,7 +72,7 @@ export default function TwisterRace() {
   const liveErrors = typed.split("").filter((c, i) => c !== target[i]).length;
 
   return (
-    <GameShell title="Tongue Twister Race" icon="microphone" gradient="from-pink-500 via-rose-500 to-red-500" stats={<><Stat label="Seconds" value={elapsed} /><Stat label="Errors" value={liveErrors} /><Stat label="Best" value={best} /></>}>
+    <GameShell title="Tongue Twister Race" icon="microphone" gradient="from-pink-500 via-rose-500 to-red-500" stats={<><Stat label="Difficulty" value={difficultyTier(level) === 1 ? "Easy" : difficultyTier(level) === 2 ? "Tricky" : "Expert"} /><Stat label="Seconds" value={elapsed} /><Stat label="Errors" value={liveErrors} /><Stat label="Best" value={best} /></>}>
       {result && result.acc >= 95 && <Confetti />}
       <div className="mx-auto max-w-3xl">
         <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-8">
